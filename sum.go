@@ -1,5 +1,6 @@
 package rdtp
 
+// this checksum can be improved
 func computeChecksum(p *Packet) uint16 {
 	csum := uint16(0)
 	for i := 0; i < len(p.Payload); i++ {
