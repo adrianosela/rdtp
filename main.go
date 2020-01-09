@@ -1,17 +1,17 @@
 package main
 
 import (
-  "flag"
+	"flag"
 )
 
-var serve = flag.Bool("s", false , "Toggle server mode ON")
+var serve = flag.Bool("s", false, "Toggle server mode ON")
 
 func main() {
-    flag.Parse()
+	flag.Parse()
 
-    if *serve {
-      // TODO
-    } else {
-      // TODO
-    }
+	if *serve {
+		// TODO
+	} else {
+		// TODO
+	}
 }
