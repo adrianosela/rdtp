@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 
+	"github.com/adrianosela/rdtp"
 	"github.com/pkg/errors"
 )
 
@@ -27,18 +29,26 @@ func main() {
 		if err != nil {
 			log.Fatal(errors.Wrap(err, "could not listen for IP"))
 		}
-		rdr := bufio.NewReader(conn)
+
+		buf := make([]byte, rdtp.MaxPacketBytes+20) // ip header is 20 bytes
 		for {
-			data, _, _ := rdr.ReadLine()
-			fmt.Println(string([]byte(data)[20:]))
+			// ReadFrom on an IPConn handles stripping the IP header
+			// To examine ip header values we can use Read() or ReadString()
+			ipDatagramLength, _, _ := conn.ReadFrom(buf)
+			fmt.Println(string([]byte(buf)[:ipDatagramLength]))
 		}
+
 	} else {
 		conn, err := net.DialIP("ip:ip", nil, addr)
 		if err != nil {
 			log.Fatal(errors.Wrap(err, "could not dial IP"))
 		}
 
-		conn.Write([]byte("eat my shorts\n"))
+		fmt.Println("Anything written here will be sent over IP packets:")
+		reader := bufio.NewReader(os.Stdin)
+		for {
+			text, _ := reader.ReadString('\n')
+			conn.Write([]byte(text)[:len(text)-1])
+		}
 	}
 }
-
