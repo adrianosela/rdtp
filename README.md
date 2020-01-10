@@ -2,7 +2,7 @@
 
 Specification and implementation of a reliable transport layer protocol to be used over IP networks.
 
-Goal: HTTP over a homemade transport protocol
+Goal: Eventually be able to perform HTTP communication over this homemade transport protocol
 
 ## Header Format
 
