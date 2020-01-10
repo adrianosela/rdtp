@@ -1,6 +1,6 @@
 # rdtp - Reliable Datagram Transfer Protocol
 
-Specification and implementation of a reliable datagram transfer protocol (Transport Layer) to be used on IP networks
+Specification and implementation of a reliable transport layer protocol to be used over IP networks
 
 
 ## Header Format
