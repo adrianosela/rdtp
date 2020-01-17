@@ -1,4 +1,4 @@
-package main
+package rdtp
 
 func computeChecksum(p *Packet) uint16 {
 	csum := uint16(0)
