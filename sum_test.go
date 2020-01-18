@@ -14,7 +14,7 @@ func TestComputeSum(t *testing.T) {
 		Length:  uint16(len(payload)),
 		Payload: payload,
 	}
-	assert.Equal(t, computeChecksum(p), ^uint16(len(payload)+8080+8081+0x61*len(payload)))
+	assert.Equal(t, p.computeChecksum(), ^uint16(len(payload)+8080+8081+0x61*len(payload)))
 }
 
 func TestVerifySum(t *testing.T) {
@@ -26,10 +26,10 @@ func TestVerifySum(t *testing.T) {
 		Payload:  payload,
 		Checksum: ^uint16(len(payload) + 8080 + 8081 + 0x61*len(payload)),
 	}
-	assert.True(t, verifyChecksum(p))
+	assert.True(t, p.verifyChecksum())
 	// tamper with the packet
 	p.SrcPort = uint16(8000)
-	assert.False(t, verifyChecksum(p))
+	assert.False(t, p.verifyChecksum())
 }
 
 func TestComputeAndVerify(t *testing.T) {
@@ -41,8 +41,8 @@ func TestComputeAndVerify(t *testing.T) {
 		Length:  uint16(len(payload)),
 		Payload: payload,
 	}
-	p.Checksum = computeChecksum(p)
-	assert.True(t, verifyChecksum(p))
+	p.Checksum = p.computeChecksum()
+	assert.True(t, p.verifyChecksum())
 	p.Payload = malformed
-	assert.False(t, verifyChecksum(p))
+	assert.False(t, p.verifyChecksum())
 }

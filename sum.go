@@ -1,6 +1,6 @@
 package rdtp
 
-func computeChecksum(p *Packet) uint16 {
+func (p *Packet) computeChecksum() uint16 {
 	csum := uint16(0)
 	csum += p.SrcPort
 	csum += p.DstPort
@@ -11,6 +11,6 @@ func computeChecksum(p *Packet) uint16 {
 	return ^csum
 }
 
-func verifyChecksum(p *Packet) bool {
-	return p.Checksum == computeChecksum(p)
+func (p *Packet) verifyChecksum() bool {
+	return p.Checksum == p.computeChecksum()
 }

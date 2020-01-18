@@ -30,12 +30,21 @@ func main() {
 			log.Fatal(errors.Wrap(err, "could not listen for IP"))
 		}
 
-		buf := make([]byte, rdtp.MaxPacketBytes+20) // ip header is 20 bytes
+		ipHeaderLen := 20
+
+		// allocate buffer for packet
+		buf := make([]byte, rdtp.MaxPacketBytes+ipHeaderLen) // ip header is 20 bytes
 		for {
 			// ReadFrom on an IPConn handles stripping the IP header
 			// To examine ip header values we can use Read() or ReadString()
-			ipDatagramLength, _, _ := conn.ReadFrom(buf)
-			fmt.Println(string([]byte(buf)[:ipDatagramLength]))
+			ipPayloadSize, _, _ := conn.ReadFrom(buf)
+
+			p, err := rdtp.Deserialize([]byte(buf)[:ipPayloadSize])
+			if err != nil {
+				log.Println(errors.Wrap(err, "could not build received rdtp packet"))
+			}
+
+			fmt.Println(string(p.Payload))
 		}
 
 	} else {
@@ -47,8 +56,17 @@ func main() {
 		fmt.Println("Anything written here will be sent over IP packets:")
 		reader := bufio.NewReader(os.Stdin)
 		for {
+			// read user input
 			text, _ := reader.ReadString('\n')
-			conn.Write([]byte(text)[:len(text)-1])
+
+			// wrap it in a packet
+			p, err := rdtp.NewPacket(uint16(8080), uint16(8081), []byte(text)[:len(text)-1])
+			if err != nil {
+				log.Println(errors.Wrap(err, "could not build rdtp packet for sending"))
+			}
+
+			// send it to the server
+			conn.Write(p.Serialize())
 		}
 	}
 }
