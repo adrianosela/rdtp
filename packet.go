@@ -4,15 +4,6 @@ import (
 	"fmt"
 )
 
-// Packet is an RDTP packet
-type Packet struct {
-	SrcPort  uint16
-	DstPort  uint16
-	Length   uint16
-	Checksum uint16
-	Payload  []byte
-}
-
 const (
 	// MaxPacketBytes is the maximum size of an RDTP packet incl. header
 	MaxPacketBytes = 65515 // 65535 - IPv4 Header (20 bytes)
@@ -22,6 +13,15 @@ const (
 	// packet can carry
 	MaxPayloadByteSize = MaxPacketBytes - HeaderByteSize
 )
+
+// Packet is an RDTP packet
+type Packet struct {
+	SrcPort  uint16
+	DstPort  uint16
+	Length   uint16
+	Checksum uint16
+	Payload  []byte
+}
 
 // NewPacket populates an RDTP packet onto a serializable state representation
 func NewPacket(src, dst uint16, payload []byte) (*Packet, error) {
