@@ -14,6 +14,13 @@ type Packet struct {
 	Payload  []byte
 }
 
+const (
+	// MaxPacketBytes is the maximum size of an RDTP packet incl. header
+	MaxPacketBytes = 65515 // 65535 - IPv4 Header (20 bytes)
+	// HeaderByteSize is the byte size of an RDTP header
+	HeaderByteSize = 8
+)
+
 // NewPacket populates an RDTP packet onto a serializable state representation
 func NewPacket(src, dst uint16, payload []byte) (*Packet, error) {
 	if len(payload) > MaxPacketBytes-HeaderByteSize {
