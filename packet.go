@@ -31,11 +31,10 @@ func NewPacket(src, dst uint16, payload []byte) (*Packet, error) {
 		)
 	}
 	p := &Packet{
-		SrcPort:  src,
-		DstPort:  dst,
-		Length:   uint16(HeaderByteSize + len(payload)),
-		Checksum: uint16(0), // zero out initially
-		Payload:  payload,
+		SrcPort: src,
+		DstPort: dst,
+		Length:  uint16(HeaderByteSize + len(payload)),
+		Payload: payload,
 	}
 	p.Checksum = computeChecksum(p)
 	return p, nil
