@@ -1,5 +1,7 @@
 # rdtp - Reliable Datagram Transfer Protocol
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/adrianosela/rdtp)](https://goreportcard.com/report/github.com/adrianosela/rdtp)
+[![Documentation](https://godoc.org/github.com/adrianosela/rdtp?status.svg)](https://godoc.org/github.com/adrianosela/rdtp)
 [![license](https://img.shields.io/github/license/adrianosela/rdtp.svg)](https://github.com/adrianosela/rdtp/blob/master/LICENSE)
 
 Specification and implementation of a reliable transport layer protocol to be used over IP networks.
