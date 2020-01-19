@@ -16,14 +16,14 @@ const (
 
 // Packet is an RDTP packet
 type Packet struct {
-	// connection identifyers and state
+	// connection identifyers
 	SrcPort uint16
 	DstPort uint16
-	Flags   uint16
+
 	// processing and integrity
 	Length   uint16
 	Checksum uint16
-	// carried data
+
 	Payload []byte
 }
 
