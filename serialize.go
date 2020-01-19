@@ -28,8 +28,17 @@ func Deserialize(data []byte) (*Packet, error) {
 		SrcPort:  binary.BigEndian.Uint16(data[0:2]),
 		DstPort:  binary.BigEndian.Uint16(data[2:4]),
 		Length:   binary.BigEndian.Uint16(data[4:6]),
-		Checksum: binary.BigEndian.Uint16(data[6:8]),
-		Payload:  data[8:],
+		Checksum: binary.BigEndian.Uint16(data[6:HeaderByteSize]),
+		Payload:  data[HeaderByteSize:],
+	}
+	// safely clean up payload length
+	if p.Length <= uint16(len(p.Payload)) {
+		p.Payload = p.Payload[:p.Length]
+	} else {
+		return nil, fmt.Errorf(
+			"Invalid RDTP header. 'Length' field (%d) longer than data (%d)",
+			p.Length,
+			len(data)-HeaderByteSize)
 	}
 	return p, nil
 }
