@@ -24,10 +24,6 @@ type Packet struct {
 	Length   uint16
 	Checksum uint16
 
-	// reliability
-	// SeqNo  uint16
-	// AckNo  uint16
-
 	Payload []byte
 }
 
