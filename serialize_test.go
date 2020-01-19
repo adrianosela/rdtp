@@ -24,21 +24,33 @@ func TestSerialize(t *testing.T) {
 }
 
 func TestDeserialize(t *testing.T) {
+
+	payload := []byte("[ mock http request ]")
+
 	serialized := append([]byte{
 		31, 145, 31, 146, // src port, dst port
-		0, 29, 185, 20, // length, checksum
-	}, []byte("[ mock http request ]")...) // payload
+		0, byte(len(payload)), 185, 28, // length, checksum
+	}, payload...) // payload
 
 	p, err := Deserialize(serialized)
 	assert.Nil(t, err)
 
 	assert.Equal(t, p.SrcPort, uint16(8081))
 	assert.Equal(t, p.DstPort, uint16(8082))
-	assert.Equal(t, p.Length, uint16(len(serialized)))
+	assert.Equal(t, p.Length, uint16(len(payload)))
 	assert.Equal(t, p.Checksum, p.computeChecksum())
 
 	// ensure we dont deserialize non-packet data
 	_, err = Deserialize([]byte("small"))
+	assert.NotNil(t, err)
+
+	// ensure we dont deserialize packets with bad size
+	badLength := append([]byte{
+		31, 145, 31, 146, // src port, dst port
+		0, byte(len(payload)) + 1, 185, 28, // length, checksum
+	}, payload...) // payload
+
+	_, err = Deserialize(badLength)
 	assert.NotNil(t, err)
 }
 

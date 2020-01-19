@@ -16,11 +16,15 @@ const (
 
 // Packet is an RDTP packet
 type Packet struct {
-	SrcPort  uint16
-	DstPort  uint16
+	// connection identifyers and state
+	SrcPort uint16
+	DstPort uint16
+	Flags   uint16
+	// processing and integrity
 	Length   uint16
 	Checksum uint16
-	Payload  []byte
+	// carried data
+	Payload []byte
 }
 
 // NewPacket populates an RDTP packet onto a serializable state representation
@@ -35,7 +39,7 @@ func NewPacket(src, dst uint16, payload []byte) (*Packet, error) {
 	p := &Packet{
 		SrcPort: src,
 		DstPort: dst,
-		Length:  uint16(HeaderByteSize + len(payload)),
+		Length:  uint16(len(payload)),
 		Payload: payload,
 	}
 	p.Checksum = p.computeChecksum()
