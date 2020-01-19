@@ -1,11 +1,11 @@
-package rdtp
+package daemon
 
 import (
 	"fmt"
 	"sync"
-)
 
-var ctrl = NewController() // global rdtp controller
+	"github.com/adrianosela/rdtp"
+)
 
 const (
 	// MaxPortNo is the amount of ports that fit in a 16 bit domain
@@ -16,26 +16,25 @@ const (
 // Controller manages port numbers for individual RDTP connections
 type Controller struct {
 	sync.Mutex // inherit mutex lock behavior
-	Ports      map[uint16]*Conn
+	Ports      map[uint16]*rdtp.Conn
 }
 
 // NewController is the constructor for a new RDTP communication controller.
 // This kind of thing typically runs in the Kernel to manage ports for TCP/UDP
 func NewController() *Controller {
 	return &Controller{
-		Ports: make(map[uint16]*Conn, MaxPortNo),
+		Ports: make(map[uint16]*rdtp.Conn, MaxPortNo),
 	}
 }
 
 // Allocate associates a connection with an RDTP port
-func (ctrl *Controller) Allocate(c *Conn) error {
+func (ctrl *Controller) Allocate(c *rdtp.Conn) error {
 	ctrl.Lock()
 	defer ctrl.Unlock()
 
 	for port := uint16(0); port < MaxPortNo; port++ {
 		if _, ok := ctrl.Ports[port]; !ok {
 			ctrl.Ports[port] = c // reserve port for conn
-			c.rxPort = port      // set port on conn
 			return nil
 		}
 	}
