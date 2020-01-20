@@ -1,4 +1,4 @@
-package rdtp
+package controller
 
 import (
 	"net"
@@ -6,15 +6,15 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Conn handles the local transport layer processing
+// Worker handles the local transport layer processing
 // for a single process-process communication
-type Conn struct {
+type Worker struct {
 	txConn net.Conn
 	txPort uint16
 }
 
-// NewConn returns an RDTP Connection struct
-func NewConn(dstIP string, dstPort uint16) (*Conn, error) {
+// NewWorker returns an RDTP Worker struct
+func NewWorker(dstIP string, dstPort uint16) (*Worker, error) {
 	// resolve destination address
 	dst, err := net.ResolveIPAddr("ip", dstIP)
 	if err != nil {
@@ -25,13 +25,14 @@ func NewConn(dstIP string, dstPort uint16) (*Conn, error) {
 		return nil, errors.Wrap(err, "could not dial IP")
 	}
 	// build connection object
-	return &Conn{
+	return &Worker{
 		txConn: txIPConn,
 		txPort: dstPort,
 	}, nil
 }
 
-func (c *Conn) Close() error {
+// Close gracefully shuts down a worker
+func (c *Worker) Close() error {
 	// TODO
 	return nil
 }
