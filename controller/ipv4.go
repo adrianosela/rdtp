@@ -9,8 +9,9 @@ import (
 )
 
 const (
-	ipv4HeaderProtocolOffset = byte(11)
-	ipv4HeaderProtocolRDTP   = byte(250)
+	ipv4HeaderProtocolOffset = byte(9)
+	// unassigned as per https://en.wikipedia.org/wiki/List_of_IP_protocol_numbers
+	ipv4HeaderProtocolRDTP = byte(250)
 )
 
 func (ctrl *Controller) listenRDTPOverIPv4() error {
