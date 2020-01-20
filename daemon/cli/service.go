@@ -19,30 +19,16 @@ var serviceCmds = cli.Command{
 			Usage:  "start the rdtp service",
 			Action: serviceStartHandler,
 		},
-		{
-			Name:   "stop",
-			Usage:  "stop the rdtp service",
-			Action: serviceStopHandler,
-		},
 	},
 }
 
 func serviceStartHandler(ctx *cli.Context) error {
-	go runService()
-	return nil
-}
-
-func serviceStopHandler(ctx *cli.Context) error {
-	// TODO
-	return nil
-}
-
-func runService() {
 	c := daemon.NewController()
 
 	sigChan := make(chan os.Signal)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	<-sigChan // block here until either SIGINT or SIGTERM is received
-
 	c.Shutdown()
+
+	return nil
 }
