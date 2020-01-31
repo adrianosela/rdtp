@@ -53,7 +53,7 @@ func main() {
 		fmt.Printf("RDTP HEADER: %v\n", rdtpHeader)
 		printRDTPHeader(rdtpPacket)
 
-		fmt.Printf("RDTP PAYLOAD: %v\n", rdtpPacket.Payload)
+		fmt.Printf("RDTP PAYLOAD: %s\n", string(rdtpPacket.Payload))
 	}
 
 }
