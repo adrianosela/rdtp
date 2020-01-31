@@ -46,7 +46,7 @@ func (ctrl *Controller) Shutdown() {
 	defer ctrl.Unlock()
 
 	for p, c := range ctrl.Ports {
-		if err := c.Close(); err != nil {
+		if err := c.Kill(); err != nil {
 			log.Println(errors.Wrapf(err, "error closing rdtp conn on port %d", p))
 		}
 		delete(ctrl.Ports, p)

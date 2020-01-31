@@ -1,11 +1,5 @@
 package controller
 
-import (
-	"net"
-
-	"github.com/pkg/errors"
-)
-
 // Worker handles the local transport layer processing
 // for a single process-process communication
 type Worker struct {
