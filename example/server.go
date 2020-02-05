@@ -14,7 +14,7 @@ import (
 
 func main() {
 	// get raw network socket (AF_INET = IPv4)
-	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_RAW, syscall.IPPROTO_RAW)
+	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_RAW, rdtp.IPPROTO_RDTP)
 	if err != nil {
 		log.Fatal(errors.Wrap(err, "could not get raw network socket"))
 	}
