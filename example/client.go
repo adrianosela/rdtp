@@ -4,23 +4,22 @@ import (
 	"bufio"
 	"fmt"
 	"log"
-	"net"
 	"os"
+	"syscall"
 
 	"github.com/adrianosela/rdtp"
 	"github.com/pkg/errors"
 )
 
 func main() {
-	addr, err := net.ResolveIPAddr("ip", "192.168.1.71")
+	// get raw network socket (AF_INET = IPv4)
+	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_RAW, syscall.IPPROTO_RAW)
 	if err != nil {
-		log.Fatal(errors.Wrap(err, "could not resolve IP address"))
+		log.Fatal(errors.Wrap(err, "could not get raw network socket"))
 	}
 
-	conn, err := net.DialIP("ip:ip", nil, addr)
-	if err != nil {
-		log.Fatal(errors.Wrap(err, "could not dial IP"))
-	}
+	// define destination address
+	addr := syscall.SockaddrInet4{Addr: [4]byte{128, 189, 200, 255}}
 
 	fmt.Println("Anything written here will be sent over IP packets:")
 	reader := bufio.NewReader(os.Stdin)
@@ -34,7 +33,9 @@ func main() {
 			log.Println(errors.Wrap(err, "could not build rdtp packet for sending"))
 		}
 
-		// send it to the server
-		conn.Write(p.Serialize())
+		// send it to socket
+		if err = syscall.Sendto(fd, p.Serialize(), 0, &addr); err != nil {
+			log.Fatal(errors.Wrap(err, "could not send data to socket"))
+		}
 	}
 }

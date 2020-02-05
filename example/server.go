@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	addr, err := net.ResolveIPAddr("ip", "192.168.1.71")
+	addr, err := net.ResolveIPAddr("ip", "128.189.200.255")
 	if err != nil {
 		log.Fatal(errors.Wrap(err, "could not resolve IP address"))
 	}
