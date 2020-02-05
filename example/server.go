@@ -32,7 +32,8 @@ func main() {
 		}
 
 		rawIP := []byte(buf)[:ipDatagramSize]
-		ipHeader, rawRDTP := rawIP[:20], rawIP[20:]
+		ihl := 4 * (rawIP[0] & byte(15))
+		ipHeader, rawRDTP := rawIP[:ihl], rawIP[ihl:]
 		rdtpHeader := rawRDTP[:rdtp.HeaderByteSize]
 
 		fmt.Printf("IP HEADER: %v\n", ipHeader)
@@ -88,8 +89,6 @@ func printIPHeader(header []byte) error {
 	// 32 bit destination ip
 	dstAddr := fmt.Sprintf("%d.%d.%d.%d", header[16], header[17], header[18], header[19])
 
-	// TODO: HANDLE OPTIONS
-
 	fmt.Printf("Version: %d\n", version)
 	fmt.Printf("Internet Header Length: %d\n", internetHeaderLength)
 	fmt.Printf("Type of Service: %d\n", typeOfService)
@@ -102,6 +101,12 @@ func printIPHeader(header []byte) error {
 	fmt.Printf("Header Checksum: %d\n", headerChecksum)
 	fmt.Printf("Source IP: %s\n", sourceAddr)
 	fmt.Printf("Destination IP: %s\n", dstAddr)
+
+	// options
+	if len(header) > 20 {
+		fmt.Printf("OPTIONS: %v", header[20:])
+	}
+
 	return nil
 }
 
