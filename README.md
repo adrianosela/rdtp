@@ -8,6 +8,15 @@ Specification and implementation of a reliable transport layer protocol to be us
 
 Goal: Eventually be able to perform HTTP communication over this homemade transport protocol
 
+TODO:
+* Reliability
+  * Sequence numbers in header
+  * Ack numbers in header
+  * Implement cumulative acknowledgements
+* Flow Control
+  * Receiver window in header
+
+
 ## Header Format
 
 ```
