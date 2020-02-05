@@ -8,7 +8,7 @@ Specification and implementation of a reliable transport layer protocol to be us
 
 Goal: Eventually be able to perform HTTP communication over this homemade transport protocol
 
-TODO:
+## TODO:
 * Reliability
   * Sequence numbers in header
   * Ack numbers in header
@@ -16,6 +16,9 @@ TODO:
 * Flow Control
   * Receiver window in header
 
+## Info Sources:
+* Link Layer & Raw Network Sockets in Go: https://www.darkcoding.net/software/raw-sockets-in-go-link-layer/
+* TCP RFC & Reliable Data Transport: https://tools.ietf.org/html/rfc793
 
 ## Header Format
 
