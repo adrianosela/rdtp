@@ -3,7 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
-	"net"
+	"os"
+	"syscall"
 
 	"encoding/binary"
 
@@ -12,30 +13,22 @@ import (
 )
 
 func main() {
-	addr, err := net.ResolveIPAddr("ip", "128.189.200.255")
+	// get raw network socket (AF_INET = IPv4)
+	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_RAW, syscall.IPPROTO_RAW)
 	if err != nil {
-		log.Fatal(errors.Wrap(err, "could not resolve IP address"))
+		log.Fatal(errors.Wrap(err, "could not get raw network socket"))
 	}
+	// readable file for socket's file descriptor
+	f := os.NewFile(uintptr(fd), fmt.Sprintf("fd %d", fd))
 
-	conn, err := net.ListenIP("ip:ip", addr)
-	if err != nil {
-		log.Fatal(errors.Wrap(err, "could not listen for IP"))
-	}
-
-	fmt.Println(fmt.Sprintf(
-		"listening on %s network address %s",
-		conn.LocalAddr().Network(),
-		conn.LocalAddr().String()))
-
+	fmt.Println("listening on all local network interfaces")
 	for {
 		buf := make([]byte, 65535) // maximum IP packet
 
-		// ReadFrom on an IPConn handles stripping the IP header
-		// To examine ip header values we can use Read() or ReadString()
-
-		ipDatagramSize, err := conn.Read(buf)
+		ipDatagramSize, err := f.Read(buf)
 		if err != nil {
-			log.Println(errors.Wrap(err, "could not read from IP listener"))
+			log.Println(errors.Wrap(err, "could not read data from network socket"))
+			continue
 		}
 
 		rawIP := []byte(buf)[:ipDatagramSize]
@@ -48,6 +41,7 @@ func main() {
 		rdtpPacket, err := rdtp.Deserialize(rawRDTP)
 		if err != nil {
 			log.Println(errors.Wrap(err, "could not deserialize rdtp packet"))
+			continue
 		}
 
 		fmt.Printf("RDTP HEADER: %v\n", rdtpHeader)

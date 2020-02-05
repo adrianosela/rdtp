@@ -18,6 +18,12 @@ func main() {
 		log.Fatal(errors.Wrap(err, "could not get raw network socket"))
 	}
 
+	// specify whether send messages will have an ip header
+	// or need one to be added to them:
+	// 1 - custom ip header
+	// 0 - default ip hedaer
+	syscall.SetsockoptInt(fd, syscall.IPPROTO_IP, syscall.IP_HDRINCL, 0)
+
 	// define destination address
 	addr := syscall.SockaddrInet4{Addr: [4]byte{128, 189, 200, 255}}
 
@@ -32,6 +38,8 @@ func main() {
 		if err != nil {
 			log.Println(errors.Wrap(err, "could not build rdtp packet for sending"))
 		}
+
+		// TODO: wrap rdtp packet in IPv4 datagram and write protocol number to IP datagram
 
 		// send it to socket
 		if err = syscall.Sendto(fd, p.Serialize(), 0, &addr); err != nil {
