@@ -29,6 +29,10 @@ Goal: Eventually be able to perform HTTP communication over this homemade transp
 +--------+--------+--------+--------+
 |      Length     |    Checksum     |
 +--------+--------+--------+--------+
+|          Sequence Number          | // TODO
++--------+-----------------+--------+
+|       Acknowledgement Number      | // TODO
++--------+-----------------+--------+
 |             ( Data )              |
 +               ....                +
 ```
