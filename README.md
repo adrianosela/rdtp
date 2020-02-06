@@ -1,4 +1,4 @@
-# rdtp - Reliable Datagram Transfer Protocol
+# rdtp - Reliable Datagram Transfer Protocol (0x9D)
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/adrianosela/rdtp)](https://goreportcard.com/report/github.com/adrianosela/rdtp)
 [![Documentation](https://godoc.org/github.com/adrianosela/rdtp?status.svg)](https://godoc.org/github.com/adrianosela/rdtp)
@@ -6,9 +6,7 @@
 
 Specification and implementation of a reliable transport layer protocol to be used over IP networks.
 
-Goal: Eventually be able to perform HTTP communication over this homemade transport protocol
-
-## TODO:
+## To-Dos:
 * Reliability
   * Sequence numbers in header
   * Ack numbers in header
@@ -16,11 +14,9 @@ Goal: Eventually be able to perform HTTP communication over this homemade transp
 * Flow Control
   * Receiver window in header
 
-## Sources & Inspiration:
-* Unreliable Data Transfer:
-  * UDP RFC: https://tools.ietf.org/html/rfc768
-* Reliable Data Transfer:
-  * TCP RFC: https://tools.ietf.org/html/rfc793
+## Based on:
+* User Datagram Protocol (UDP) [RFC](https://tools.ietf.org/html/rfc768)
+* Transmission Control Protocol (TCP) [RFC](https://tools.ietf.org/html/rfc793)
 
 ## Header Format
 
@@ -38,6 +34,10 @@ Goal: Eventually be able to perform HTTP communication over this homemade transp
 |             ( Data )              |
 +               ....                +
 ```
+
+## Important Notes: 
+
+The value for the underlying IP header's "Protocol" field must be set to 0x9D (157 -- currently [Unassigned](https://en.wikipedia.org/wiki/List_of_IP_protocol_numbers))
 
 ## Over the Wire
 
