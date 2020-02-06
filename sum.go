@@ -11,6 +11,7 @@ func (p *Packet) computeChecksum() uint16 {
 	return ^csum
 }
 
-func (p *Packet) verifyChecksum() bool {
+// Check verifies the checksum on an RDTP packet
+func (p *Packet) Check() bool {
 	return p.Checksum == p.computeChecksum()
 }

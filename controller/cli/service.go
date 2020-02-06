@@ -1,10 +1,6 @@
 package main
 
 import (
-	"os"
-	"os/signal"
-	"syscall"
-
 	"github.com/adrianosela/rdtp/controller"
 	cli "gopkg.in/urfave/cli.v1"
 )
@@ -24,11 +20,6 @@ var serviceCmds = cli.Command{
 
 func serviceStartHandler(ctx *cli.Context) error {
 	c := controller.NewController()
-
-	sigChan := make(chan os.Signal)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	<-sigChan // block here until either SIGINT or SIGTERM is received
-	c.Shutdown()
-
-	return nil
+	defer c.Shutdown()
+	return c.Start()
 }

@@ -1,15 +1,13 @@
 package controller
 
-import (
-	"fmt"
-)
+import "fmt"
 
 // Allocate associates a connection with an RDTP port
 func (ctrl *Controller) Allocate(c *Worker) (uint16, error) {
 	ctrl.Lock()
 	defer ctrl.Unlock()
 
-	for port := uint16(0); port < MaxPortNo; port++ {
+	for port := uint16(0); port < maxPortNo; port++ {
 		if _, ok := ctrl.Ports[port]; !ok {
 			ctrl.Ports[port] = c // reserve port for conn
 			return port, nil
