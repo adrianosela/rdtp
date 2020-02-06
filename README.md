@@ -15,8 +15,8 @@ Specification and implementation of a reliable transport layer protocol to be us
   * Receiver window in header
 
 ## Based on:
-* User Datagram Protocol (UDP) [RFC](https://tools.ietf.org/html/rfc768)
-* Transmission Control Protocol (TCP) [RFC](https://tools.ietf.org/html/rfc793)
+* UDP - User Datagram Protocol [[RFC]](https://tools.ietf.org/html/rfc768)
+* TCP - Transmission Control Protocol [[RFC]](https://tools.ietf.org/html/rfc793)
 
 ## Header Format
 
