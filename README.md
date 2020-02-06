@@ -38,3 +38,11 @@ Goal: Eventually be able to perform HTTP communication over this homemade transp
 |             ( Data )              |
 +               ....                +
 ```
+
+## Over the Wire
+
+Here's a [Wireshark](https://www.wireshark.org/) capture of an RDTP packet over the wire:
+
+![](./docs/img/cap0.png)
+
+(The highlighted bytes are the RDTP header + payload)
