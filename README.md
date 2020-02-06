@@ -1,8 +1,10 @@
-# rdtp - Reliable Data Transport Protocol (IPPROTO_RDTP = 0x9D)
+# rdtp - Reliable Data Transport Protocol
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/adrianosela/rdtp)](https://goreportcard.com/report/github.com/adrianosela/rdtp)
 [![Documentation](https://godoc.org/github.com/adrianosela/rdtp?status.svg)](https://godoc.org/github.com/adrianosela/rdtp)
 [![license](https://img.shields.io/github/license/adrianosela/rdtp.svg)](https://github.com/adrianosela/rdtp/blob/master/LICENSE)
+
+**[IPPROTO_RDTP = 0x9D]**
 
 Specification and implementation of a reliable transport layer protocol to be used over IP networks.
 
