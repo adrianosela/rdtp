@@ -20,8 +20,8 @@ const (
 // Controller is the RDTP communication controller.
 // This kind of thing typically runs in the Kernel to manage ports for TCP/UDP
 type Controller struct {
-	sync.Mutex // inherit mutex lock behavior
-	Ports      map[uint16]*Worker
+	sync.RWMutex // inherit read/write mutex lock behavior
+	Ports        map[uint16]*Worker
 }
 
 // NewController is the constructor for a new RDTP communication controller.
@@ -73,6 +73,20 @@ func (ctrl *Controller) Start() error {
 			continue
 		}
 	}
+}
+
+// Listen listens on a given port
+func (ctrl *Controller) Listen(p uint16) error {
+	w, err := NewWorker()
+	if err != nil {
+		return errors.Wrap(err, "could not initiate new rdtp worker")
+	}
+
+	if err = ctrl.Allocate(w, p); err != nil {
+		return errors.Wrap(err, "could not allocate port")
+	}
+
+	return nil
 }
 
 // Shutdown force-closes all existing connections for a controller
