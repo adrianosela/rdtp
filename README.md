@@ -6,7 +6,7 @@
 
 **[IPPROTO_RDTP = 0x9D]**
 
-Specification and implementation of a reliable transport layer protocol to be used over IP networks.
+Specification of a reliable transport layer protocol to be used over IP networks, along a simplistic and modular implementation in Go.
 
 ## To-Dos:
 * Reliability
