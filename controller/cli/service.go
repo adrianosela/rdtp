@@ -5,7 +5,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/adrianosela/rdtp/daemon"
+	"github.com/adrianosela/rdtp/controller"
 	cli "gopkg.in/urfave/cli.v1"
 )
 
@@ -23,7 +23,7 @@ var serviceCmds = cli.Command{
 }
 
 func serviceStartHandler(ctx *cli.Context) error {
-	c := daemon.NewController()
+	c := controller.NewController()
 
 	sigChan := make(chan os.Signal)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
