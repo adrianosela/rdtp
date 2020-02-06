@@ -19,7 +19,7 @@ func main() {
 	app := cli.NewApp()
 	app.Version = version
 	app.EnableBashCompletion = true
-	app.Usage = "rdtp (Reliable Data Transfer Protocol) daemon"
+	app.Usage = "rdtp (Reliable Data Transport Protocol) daemon"
 	app.Flags = appflags
 	app.Commands = appcmds
 	app.CommandNotFound = func(c *cli.Context, command string) {
