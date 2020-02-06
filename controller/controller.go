@@ -43,7 +43,7 @@ func (ctrl *Controller) Start() error {
 	// readable file for socket's file descriptor
 	f := os.NewFile(uintptr(fd), fmt.Sprintf("fd %d", fd))
 
-	fmt.Println("listening on all local IPv4 network interfaces")
+	fmt.Println("listening for RDTP (0x9D) on all local IPv4 network interfaces...")
 	for {
 		buf := make([]byte, 65535) // maximum IP packet
 
