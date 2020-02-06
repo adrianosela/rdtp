@@ -1,4 +1,4 @@
-# rdtp - Reliable Datagram Transfer Protocol (0x9D)
+# rdtp - Reliable Data Transport Protocol (IPPROTO_RDTP = 0x9D)
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/adrianosela/rdtp)](https://goreportcard.com/report/github.com/adrianosela/rdtp)
 [![Documentation](https://godoc.org/github.com/adrianosela/rdtp?status.svg)](https://godoc.org/github.com/adrianosela/rdtp)
