@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/adrianosela/rdtp/controller"
 	"github.com/pkg/errors"
-	"github.com/takama/daemon"
 	cli "gopkg.in/urfave/cli.v1"
 )
 
@@ -26,6 +25,11 @@ var serviceCmds = cli.Command{
 			Name:   "start",
 			Usage:  "start the rdtp service",
 			Action: serviceStartHandler,
+		},
+		{
+			Name:   "run",
+			Usage:  "run the rdtp service",
+			Action: serviceRunHandler,
 		},
 		{
 			Name:   "stop",
@@ -51,6 +55,11 @@ func serviceRemoveHandler(ctx *cli.Context) error {
 }
 
 func serviceStartHandler(ctx *cli.Context) error {
+	// TODO
+	return nil
+}
+
+func serviceRunHandler(ctx *cli.Context) error {
 	c := controller.NewController()
 
 	// TODO: remove this listener
