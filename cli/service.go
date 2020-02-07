@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/adrianosela/rdtp/controller"
 	"github.com/pkg/errors"
+	"github.com/takama/daemon"
 	cli "gopkg.in/urfave/cli.v1"
 )
 
@@ -12,11 +13,41 @@ var serviceCmds = cli.Command{
 	Usage:   "Manage rdtp service settings",
 	Subcommands: []cli.Command{
 		{
+			Name:   "install",
+			Usage:  "install the rdtp service",
+			Action: serviceInstallHandler,
+		},
+		{
+			Name:   "remove",
+			Usage:  "remove the rdtp service",
+			Action: serviceRemoveHandler,
+		},
+		{
 			Name:   "start",
 			Usage:  "start the rdtp service",
 			Action: serviceStartHandler,
 		},
+		{
+			Name:   "stop",
+			Usage:  "stop the rdtp service",
+			Action: serviceStopHandler,
+		},
+		{
+			Name:   "status",
+			Usage:  "check the status of the rdtp service",
+			Action: serviceStatusHandler,
+		},
 	},
+}
+
+func serviceInstallHandler(ctx *cli.Context) error {
+	// TODO
+	return nil
+}
+
+func serviceRemoveHandler(ctx *cli.Context) error {
+	// TODO
+	return nil
 }
 
 func serviceStartHandler(ctx *cli.Context) error {
@@ -29,4 +60,14 @@ func serviceStartHandler(ctx *cli.Context) error {
 
 	defer c.Shutdown()
 	return c.Start()
+}
+
+func serviceStopHandler(ctx *cli.Context) error {
+	// TODO
+	return nil
+}
+
+func serviceStatusHandler(ctx *cli.Context) error {
+	// TODO
+	return nil
 }
