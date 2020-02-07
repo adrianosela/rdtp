@@ -1,8 +1,12 @@
 package main
 
 import (
-	"github.com/adrianosela/rdtp/controller"
+	"fmt"
+
+	"github.com/adrianosela/rdtp/service"
+
 	"github.com/pkg/errors"
+	"github.com/takama/daemon"
 	cli "gopkg.in/urfave/cli.v1"
 )
 
@@ -45,38 +49,84 @@ var serviceCmds = cli.Command{
 }
 
 func serviceInstallHandler(ctx *cli.Context) error {
-	// TODO
+	srv, err := daemon.New(ctx.App.Name, ctx.App.Description)
+	if err != nil {
+		return errors.Wrap(err, "could not get daemon")
+	}
+	status, err := srv.Install()
+	if err != nil {
+		return errors.Wrap(err, "could not install daemon")
+	}
+	fmt.Println(status)
 	return nil
 }
 
 func serviceRemoveHandler(ctx *cli.Context) error {
-	// TODO
+	srv, err := daemon.New(ctx.App.Name, ctx.App.Description)
+	if err != nil {
+		return errors.Wrap(err, "could not get daemon")
+	}
+	status, err := srv.Remove()
+	if err != nil {
+		return errors.Wrap(err, "could not remove daemon")
+	}
+	fmt.Println(status)
 	return nil
 }
 
 func serviceStartHandler(ctx *cli.Context) error {
-	// TODO
+	srv, err := daemon.New(ctx.App.Name, ctx.App.Description)
+	if err != nil {
+		return errors.Wrap(err, "could not get daemon")
+	}
+	status, err := srv.Start()
+	if err != nil {
+		return errors.Wrap(err, "could not start daemon")
+	}
+	fmt.Println(status)
 	return nil
 }
 
 func serviceRunHandler(ctx *cli.Context) error {
-	c := controller.NewController()
+	// // TODO: remove this listener
+	// if err := c.Listen(uint16(15)); err != nil {
+	// 	return errors.Wrap(err, "could not open new listener")
+	// }
 
-	// TODO: remove this listener
-	if err := c.Listen(uint16(15)); err != nil {
-		return errors.Wrap(err, "could not open new listener")
+	srv, err := daemon.New(ctx.App.Name, ctx.App.Description)
+	if err != nil {
+		return errors.Wrap(err, "could not get daemon")
 	}
-
-	defer c.Shutdown()
-	return c.Start()
+	status, err := srv.Run(service.NewService())
+	if err != nil {
+		return errors.Wrap(err, "could not stop daemon")
+	}
+	fmt.Println(status)
+	return nil
 }
 
 func serviceStopHandler(ctx *cli.Context) error {
-	// TODO
+	srv, err := daemon.New(ctx.App.Name, ctx.App.Description)
+	if err != nil {
+		return errors.Wrap(err, "could not get daemon")
+	}
+	status, err := srv.Stop()
+	if err != nil {
+		return errors.Wrap(err, "could not stop daemon")
+	}
+	fmt.Println(status)
 	return nil
 }
 
 func serviceStatusHandler(ctx *cli.Context) error {
-	// TODO
+	srv, err := daemon.New(ctx.App.Name, ctx.App.Description)
+	if err != nil {
+		return errors.Wrap(err, "could not get daemon")
+	}
+	status, err := srv.Status()
+	if err != nil {
+		return errors.Wrap(err, "could not get status for daemon")
+	}
+	fmt.Println(status)
 	return nil
 }
