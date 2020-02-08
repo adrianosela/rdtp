@@ -116,4 +116,5 @@ func printRDTPHeader(p *packet.Packet) {
 	fmt.Printf("Destination Port: %d\n", p.DstPort)
 	fmt.Printf("Length: %d\n", p.Length)
 	fmt.Printf("Checksum: %d\n", p.Checksum)
+	fmt.Printf("Flags: %d\n", p.Flags)
 }
