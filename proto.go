@@ -13,6 +13,9 @@ const (
 
 	// DiscoveryPort is the port that receives SYN packets
 	DiscoveryPort = uint16(0)
+
+	// MaxPortNo is the maximum port number representable with 16 bits
+	MaxPortNo = 65535
 )
 
 // Addr represents an RDTP address.

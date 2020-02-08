@@ -14,9 +14,6 @@ const (
 	// MaxPayloadByteSize is the maximum size of a payload that a single RDTP
 	// packet can carry
 	MaxPayloadByteSize = MaxPacketBytes - HeaderByteSize
-
-	// MaxPortNo is the maximum port number representable with 16 bits
-	MaxPortNo = 65535
 )
 
 // Packet is an RDTP packet
