@@ -34,7 +34,7 @@ Specification of a reliable transport layer protocol to be used over IP networks
 |       Acknowledgement Number      | // TODO
 +--------+-----------------+--------+
 |  Flags |                          |
-+--------+
++--------+                          |
 |             ( Data )              |
 +               ....                +
 ```
