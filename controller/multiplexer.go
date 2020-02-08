@@ -2,23 +2,20 @@ package controller
 
 import (
 	"fmt"
-	"log"
-
-	"github.com/adrianosela/rdtp"
+	"github.com/adrianosela/rdtp/packet"
 )
 
 // MultiplexPacket delivers a packet to the correct destination worker
-func (ctrl *Controller) MultiplexPacket(p *rdtp.Packet) error {
+func (ctrl *Controller) MultiplexPacket(p *packet.Packet) error {
 	ctrl.RLock()
 	defer ctrl.RUnlock()
 
-	w, ok := ctrl.Ports[p.DstPort]
+	worker, ok := ctrl.Ports[p.DstPort]
 	if !ok {
 		return fmt.Errorf("port %d is closed", p.DstPort)
 	}
 
-	w.rxChan <- p.Payload
-	log.Printf("[MUX] %d --> %d", p.Length, p.DstPort)
+	worker.rxChan <- p.Payload
 
 	return nil
 }

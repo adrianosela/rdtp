@@ -8,12 +8,13 @@ import (
 	"syscall"
 
 	"github.com/adrianosela/rdtp"
+	"github.com/adrianosela/rdtp/packet"
 	"github.com/pkg/errors"
 )
 
 func main() {
 	// get raw network socket (AF_INET = IPv4)
-	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_RAW, rdtp.IPPROTO_RDTP)
+	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_RAW, rdtp.IPProtoRDTP)
 	if err != nil {
 		log.Fatal(errors.Wrap(err, "could not get raw network socket"))
 	}
@@ -28,7 +29,7 @@ func main() {
 		text, _ := reader.ReadString('\n')
 
 		// wrap it in a packet
-		p, err := rdtp.NewPacket(uint16(14), uint16(15), []byte(text)[:len(text)-1])
+		p, err := packet.NewPacket(uint16(14), uint16(15), []byte(text)[:len(text)-1])
 		if err != nil {
 			log.Println(errors.Wrap(err, "could not build rdtp packet for sending"))
 		}

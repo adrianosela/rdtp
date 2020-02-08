@@ -1,4 +1,4 @@
-package rdtp
+package packet
 
 import (
 	"encoding/binary"
@@ -13,6 +13,7 @@ func (p *Packet) Serialize() []byte {
 	binary.BigEndian.PutUint16(b[2:4], p.DstPort)
 	binary.BigEndian.PutUint16(b[4:6], p.Length)
 	binary.BigEndian.PutUint16(b[6:8], p.Checksum)
+	b[8] = byte(p.Flags)
 	return append(b, p.Payload...)
 }
 
@@ -28,7 +29,8 @@ func Deserialize(data []byte) (*Packet, error) {
 		SrcPort:  binary.BigEndian.Uint16(data[0:2]),
 		DstPort:  binary.BigEndian.Uint16(data[2:4]),
 		Length:   binary.BigEndian.Uint16(data[4:6]),
-		Checksum: binary.BigEndian.Uint16(data[6:HeaderByteSize]),
+		Checksum: binary.BigEndian.Uint16(data[6:8]),
+		Flags:    data[8],
 		Payload:  data[HeaderByteSize:],
 	}
 	// safely clean up payload length

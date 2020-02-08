@@ -1,4 +1,4 @@
-package rdtp
+package packet
 
 import (
 	"testing"

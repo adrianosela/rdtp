@@ -1,4 +1,4 @@
-package rdtp
+package packet
 
 import (
 	"fmt"
@@ -13,6 +13,8 @@ type Packet struct {
 	// processing and integrity
 	Length   uint16
 	Checksum uint16
+
+	Flags uint8 // {SYN, FIN, ACK, ERR, XXXX, XXXX, XXXX, XXXX}
 
 	Payload []byte
 }
@@ -30,6 +32,7 @@ func NewPacket(src, dst uint16, payload []byte) (*Packet, error) {
 		SrcPort: src,
 		DstPort: dst,
 		Length:  uint16(len(payload)),
+		Flags:   uint8(0),
 		Payload: payload,
 	}
 	p.Checksum = p.computeChecksum()

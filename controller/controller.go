@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/adrianosela/rdtp"
+	"github.com/adrianosela/rdtp/packet"
 	"github.com/pkg/errors"
 )
 
@@ -35,7 +36,7 @@ func NewController() *Controller {
 // Start starts the RDTP Controller service
 func (ctrl *Controller) Start() error {
 	// get raw network socket (AF_INET = IPv4)
-	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_RAW, rdtp.IPPROTO_RDTP)
+	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_RAW, rdtp.IPProtoRDTP)
 	if err != nil {
 		return errors.Wrap(err, "could not get raw network socket")
 	}
@@ -57,7 +58,7 @@ func (ctrl *Controller) Start() error {
 		ihl := 4 * (rawIP[0] & byte(15))
 		rawRDTP := rawIP[ihl:]
 
-		rdtpPacket, err := rdtp.Deserialize(rawRDTP)
+		rdtpPacket, err := packet.Deserialize(rawRDTP)
 		if err != nil {
 			log.Println(errors.Wrap(err, "could not deserialize rdtp packet"))
 			continue

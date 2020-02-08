@@ -9,12 +9,13 @@ import (
 	"encoding/binary"
 
 	"github.com/adrianosela/rdtp"
+	"github.com/adrianosela/rdtp/packet"
 	"github.com/pkg/errors"
 )
 
 func main() {
 	// get raw network socket (AF_INET = IPv4)
-	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_RAW, rdtp.IPPROTO_RDTP)
+	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_RAW, rdtp.IPProtoRDTP)
 	if err != nil {
 		log.Fatal(errors.Wrap(err, "could not get raw network socket"))
 	}
@@ -34,12 +35,12 @@ func main() {
 		rawIP := []byte(buf)[:ipDatagramSize]
 		ihl := 4 * (rawIP[0] & byte(15))
 		ipHeader, rawRDTP := rawIP[:ihl], rawIP[ihl:]
-		rdtpHeader := rawRDTP[:rdtp.HeaderByteSize]
+		rdtpHeader := rawRDTP[:packet.HeaderByteSize]
 
 		fmt.Printf("IP HEADER: %v\n", ipHeader)
 		printIPHeader(ipHeader)
 
-		rdtpPacket, err := rdtp.Deserialize(rawRDTP)
+		rdtpPacket, err := packet.Deserialize(rawRDTP)
 		if err != nil {
 			log.Println(errors.Wrap(err, "could not deserialize rdtp packet"))
 			continue
@@ -110,7 +111,7 @@ func printIPHeader(header []byte) error {
 	return nil
 }
 
-func printRDTPHeader(p *rdtp.Packet) {
+func printRDTPHeader(p *packet.Packet) {
 	fmt.Printf("Source Port: %d\n", p.SrcPort)
 	fmt.Printf("Destination Port: %d\n", p.DstPort)
 	fmt.Printf("Length: %d\n", p.Length)

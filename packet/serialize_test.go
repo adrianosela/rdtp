@@ -1,4 +1,4 @@
-package rdtp
+package packet
 
 import (
 	"encoding/binary"
@@ -18,6 +18,7 @@ func TestSerialize(t *testing.T) {
 	binary.BigEndian.PutUint16(header[2:4], p.DstPort)
 	binary.BigEndian.PutUint16(header[4:6], p.Length)
 	binary.BigEndian.PutUint16(header[6:8], p.Checksum)
+	header[8] = uint8(0) // flags
 
 	byt := p.Serialize()
 	assert.Equal(t, string(byt), string(append(header, payload...)))
@@ -30,7 +31,7 @@ func TestDeserialize(t *testing.T) {
 	serialized := append([]byte{
 		31, 145, 31, 146, // src port, dst port
 		0, byte(len(payload)), 185, 28, // length, checksum
-	}, payload...) // payload
+		0}, payload...) // flags, payload
 
 	p, err := Deserialize(serialized)
 	assert.Nil(t, err)
