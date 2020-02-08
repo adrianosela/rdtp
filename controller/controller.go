@@ -76,20 +76,6 @@ func (ctrl *Controller) Start() error {
 	}
 }
 
-// Listen listens on a given port
-func (ctrl *Controller) Listen(p uint16) error {
-	w, err := NewWorker()
-	if err != nil {
-		return errors.Wrap(err, "could not initiate new rdtp worker")
-	}
-
-	if err = ctrl.Allocate(w, p); err != nil {
-		return errors.Wrap(err, "could not allocate port")
-	}
-
-	return nil
-}
-
 // Shutdown force-closes all existing connections for a controller
 func (ctrl *Controller) Shutdown() {
 	ctrl.Lock()

@@ -13,7 +13,7 @@ func (ctrl *Controller) AllocateAny(w *Worker) (uint16, error) {
 	for port := uint16(1); port < maxPortNo; port++ {
 		if _, ok := ctrl.Ports[port]; !ok {
 			ctrl.Ports[port] = w // reserve port for worker
-			w.id = port          // assign port to worker
+			w.Port = port        // assign port to worker
 			return port, nil
 		}
 	}
@@ -32,7 +32,7 @@ func (ctrl *Controller) Allocate(w *Worker, p uint16) error {
 
 	if _, ok := ctrl.Ports[p]; !ok {
 		ctrl.Ports[p] = w // reserve port for worker
-		w.id = p          // assign port to worker
+		w.Port = p        // assign port to worker
 		return nil
 	}
 
