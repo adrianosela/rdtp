@@ -1,4 +1,4 @@
-package proto
+package rdtp
 
 const (
 	// IPProtoRDTP is the protocol number for RDTP packets over IP

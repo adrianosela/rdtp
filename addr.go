@@ -2,8 +2,6 @@ package rdtp
 
 import (
 	"fmt"
-
-	"github.com/adrianosela/rdtp/proto"
 )
 
 // Addr represents an RDTP address.
@@ -15,7 +13,7 @@ type Addr struct {
 
 // Network returns the name of the network
 func (a *Addr) Network() string {
-	return proto.Network
+	return Network
 }
 
 // String returns the string form of the address

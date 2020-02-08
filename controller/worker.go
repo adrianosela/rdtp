@@ -4,7 +4,7 @@ import (
 	"net"
 	"syscall"
 
-	"github.com/adrianosela/rdtp/proto"
+	"github.com/adrianosela/rdtp"
 	"github.com/pkg/errors"
 )
 
@@ -31,7 +31,7 @@ func NewWorker(ip string) (*Worker, error) {
 	copy(addr.Addr[:], ipByte)
 
 	// get raw network socket (AF_INET = IPv4) to send messages on
-	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_RAW, proto.IPProtoRDTP)
+	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_RAW, rdtp.IPProtoRDTP)
 	if err != nil {
 		return nil, errors.Wrap(err, "worker could not get raw network socket")
 	}
@@ -40,7 +40,7 @@ func NewWorker(ip string) (*Worker, error) {
 
 	w := &Worker{
 		Port:  15, // get from rdtp controller
-		rPort: proto.DiscoveryPort,
+		rPort: rdtp.DiscoveryPort,
 		rAddr: addr,
 
 		socket: fd,
