@@ -1,8 +1,6 @@
 package main
 
 import (
-	"github.com/adrianosela/rdtp/controller"
-	"github.com/pkg/errors"
 	cli "gopkg.in/urfave/cli.v1"
 )
 
@@ -60,15 +58,8 @@ func serviceStartHandler(ctx *cli.Context) error {
 }
 
 func serviceRunHandler(ctx *cli.Context) error {
-	c := controller.NewController()
-
-	// TODO: remove this listener
-	if err := c.Listen(uint16(15)); err != nil {
-		return errors.Wrap(err, "could not open new listener")
-	}
-
-	defer c.Shutdown()
-	return c.Start()
+	// TODO
+	return nil
 }
 
 func serviceStopHandler(ctx *cli.Context) error {
