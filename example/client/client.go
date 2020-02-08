@@ -7,14 +7,14 @@ import (
 	"os"
 	"syscall"
 
-	"github.com/adrianosela/rdtp"
 	"github.com/adrianosela/rdtp/packet"
+	"github.com/adrianosela/rdtp/proto"
 	"github.com/pkg/errors"
 )
 
 func main() {
 	// get raw network socket (AF_INET = IPv4)
-	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_RAW, rdtp.IPProtoRDTP)
+	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_RAW, proto.IPProtoRDTP)
 	if err != nil {
 		log.Fatal(errors.Wrap(err, "could not get raw network socket"))
 	}

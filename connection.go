@@ -1,55 +1,29 @@
 package rdtp
 
 import (
-	"syscall"
-
-	"github.com/adrianosela/rdtp/packet"
+	"github.com/adrianosela/rdtp/worker"
 	"github.com/pkg/errors"
 )
 
 // Conn is an RDTP connection
 type Conn struct {
-	lPort uint16 // local port
-	rPort uint16 // remote port
-
-	rAddr *syscall.SockaddrInet4 // remote address
-
-	sockFD int // socket file descriptor
+	worker *worker.Worker
 }
 
 // Dial establishes an RDTP connection with a remote IP host
-func Dial(ip [4]byte) (*Conn, error) {
-	// get raw network socket (AF_INET = IPv4) to send messages on
-	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_RAW, IPProtoRDTP)
+func Dial(ip string) (*Conn, error) {
+	// define destination address (on loopback for now)
+	w, err := worker.NewWorker(ip)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not get raw network socket")
+		return nil, errors.Wrap(err, "failed to start rdtp worker")
 	}
-
-	// TODO: get port from RDTP controller
-	// if no rdtp controller, return error
-	localPort := uint16(10)
-
-	c := &Conn{
-		lPort:  localPort,
-		rPort:  DiscoveryPort, // until syn ack
-		rAddr:  &syscall.SockaddrInet4{Addr: ip},
-		sockFD: fd,
-	}
-
-	c.syn()
-	// block and wait for SYN ACK
-	// repond with ACK
-
-	return c, nil
+	return &Conn{worker: w}, nil
 }
 
-func (c *Conn) syn() error {
-	p, err := packet.NewPacket(c.lPort, DiscoveryPort, nil)
-	if err != nil {
-		return errors.Wrap(err, "could not build rdtp SYN packet for sending")
-	}
-	if err = syscall.Sendto(c.sockFD, p.Serialize(), 0, c.rAddr); err != nil {
-		errors.Wrap(err, "could not send syn to network socket")
+// Close closes an RDTP connection
+func (c *Conn) Close() error {
+	if err := c.worker.Kill(); err != nil {
+		return errors.Wrap(err, "failed to terminate rdtp worker gracefully")
 	}
 	return nil
 }

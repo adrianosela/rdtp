@@ -7,8 +7,8 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/adrianosela/rdtp"
 	"github.com/adrianosela/rdtp/packet"
+	"github.com/adrianosela/rdtp/proto"
 	"github.com/pkg/errors"
 )
 
@@ -36,7 +36,7 @@ func NewController() *Controller {
 // Start starts the RDTP Controller service
 func (ctrl *Controller) Start() error {
 	// get raw network socket (AF_INET = IPv4)
-	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_RAW, rdtp.IPProtoRDTP)
+	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_RAW, proto.IPProtoRDTP)
 	if err != nil {
 		return errors.Wrap(err, "could not get raw network socket")
 	}
