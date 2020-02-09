@@ -1,6 +1,8 @@
 package main
 
 import (
+	"github.com/adrianosela/rdtp/service"
+	"github.com/pkg/errors"
 	cli "gopkg.in/urfave/cli.v1"
 )
 
@@ -10,24 +12,9 @@ var serviceCmds = cli.Command{
 	Usage:   "Manage rdtp service settings",
 	Subcommands: []cli.Command{
 		{
-			Name:   "install",
-			Usage:  "install the rdtp service",
-			Action: serviceInstallHandler,
-		},
-		{
-			Name:   "remove",
-			Usage:  "remove the rdtp service",
-			Action: serviceRemoveHandler,
-		},
-		{
 			Name:   "start",
 			Usage:  "start the rdtp service",
 			Action: serviceStartHandler,
-		},
-		{
-			Name:   "run",
-			Usage:  "run the rdtp service",
-			Action: serviceRunHandler,
 		},
 		{
 			Name:   "stop",
@@ -42,23 +29,14 @@ var serviceCmds = cli.Command{
 	},
 }
 
-func serviceInstallHandler(ctx *cli.Context) error {
-	// TODO
-	return nil
-}
-
-func serviceRemoveHandler(ctx *cli.Context) error {
-	// TODO
-	return nil
-}
-
 func serviceStartHandler(ctx *cli.Context) error {
-	// TODO
-	return nil
-}
-
-func serviceRunHandler(ctx *cli.Context) error {
-	// TODO
+	svc, err := service.NewService()
+	if err != nil {
+		return errors.Wrap(err, "could not get rdtp service")
+	}
+	if err = svc.Start(); err != nil {
+		return errors.Wrap(err, "could not start rdtp service")
+	}
 	return nil
 }
 

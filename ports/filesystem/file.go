@@ -9,7 +9,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-const rdtpFilePath = "~/.rdtp"
+const rdtpFilePath = "/.rdtp"
 
 // Statefile contains a map of ports in use to
 // the time they were opened at (epoch nanoseconds)
@@ -38,10 +38,10 @@ func (s *Statefile) commit(path string) error {
 	}
 	fd, err := os.Create(path)
 	if err != nil {
-		return fmt.Errorf("could not create padlfile: %s", err)
+		return fmt.Errorf("could not create statefile: %s", err)
 	}
 	if _, err = fd.Write(stateByt); err != nil {
-		return fmt.Errorf("could not write padlfile: %s", err)
+		return fmt.Errorf("could not write statefile: %s", err)
 	}
 	return nil
 }
