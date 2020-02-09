@@ -1,13 +1,25 @@
 package rdtp
 
+import (
+	"github.com/adrianosela/rdtp/service"
+	"github.com/pkg/errors"
+)
+
 // Conn is an RDTP connection
 type Conn struct {
-	// TODO
+	svcConn service.Service
 }
 
 // Dial establishes an RDTP connection with a remote IP host
 func Dial(ip string) (*Conn, error) {
-	return &Conn{ /* TODO */ }, nil
+	svc, err := service.Acquire()
+	if err != nil {
+		return nil, errors.Wrap(err, "could not acquire default RDTP service")
+	}
+	// TODO
+	return &Conn{
+		svcConn: svc,
+	}, nil
 }
 
 // Close closes an RDTP connection
