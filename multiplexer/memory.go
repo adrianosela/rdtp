@@ -10,7 +10,7 @@ import (
 	"github.com/adrianosela/rdtp/packet"
 )
 
-// MapMux is an in-memory implementation of a mux
+// MapMux is an in-memory implementation of a Mux
 type MapMux struct {
 	sync.RWMutex // inherit read/write lock behavior
 

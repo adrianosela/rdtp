@@ -5,8 +5,8 @@ import (
 	"log"
 	"net"
 	"os"
+	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/adrianosela/rdtp"
 	"github.com/adrianosela/rdtp/multiplexer"
@@ -32,7 +32,7 @@ func NewService() (*Service, error) {
 		return nil, errors.Wrap(err, "could not init file system ports manager")
 	}
 	return &Service{
-		unixSock: "/tmp/rdtp.sock" + "-" + time.Now().String(),
+		unixSock: rdtp.DefaultRDTPServiceAddr,
 		ports:    mgr,
 		mux:      multiplexer.NewMapMux(),
 	}, nil
@@ -44,9 +44,20 @@ func (s *Service) Start() error {
 	if err != nil {
 		return errors.Wrap(err, "could not listen on unix socket")
 	}
-	defer l.Close()
+
+	// Unix sockets must be unlink()ed before being reused again.
+	// Handle common process-killing signals so we can gracefully shut down:
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, os.Kill, syscall.SIGTERM)
+	go func(c chan os.Signal) {
+		sig := <-c
+		log.Printf("[RDTP] signal %s: shutting down.", sig)
+		l.Close()
+		os.Exit(0)
+	}(sigChan)
 
 	go s.listenRDTP()
+
 	for {
 		conn, err := l.Accept()
 		if err != nil {
@@ -96,6 +107,6 @@ func (s *Service) serveClient(c net.Conn) {
 		return
 	}
 	s.mux.Attach(p, c)
-
-	// TODO?
+	log.Printf("[RDTP] new client on port %d", p)
+	// TODO
 }

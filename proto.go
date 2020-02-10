@@ -13,6 +13,9 @@ const (
 
 	// DiscoveryPort is the port that receives SYN packets
 	DiscoveryPort = uint16(0)
+
+	// DefaultRDTPServiceAddr is the default rdtp service socket
+	DefaultRDTPServiceAddr = "/tmp/rdtp.sock"
 )
 
 // Addr represents an RDTP address.

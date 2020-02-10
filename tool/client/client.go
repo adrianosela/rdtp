@@ -29,7 +29,7 @@ func main() {
 		text, _ := reader.ReadString('\n')
 
 		// wrap it in a packet
-		p, err := packet.NewPacket(uint16(14), uint16(15), []byte(text)[:len(text)-1])
+		p, err := packet.NewPacket(uint16(14), uint16(7), []byte(text)[:len(text)-1])
 		if err != nil {
 			log.Println(errors.Wrap(err, "could not build rdtp packet for sending"))
 		}
