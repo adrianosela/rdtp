@@ -6,8 +6,10 @@ import (
 	"net"
 	"os"
 	"syscall"
+	"time"
 
 	"github.com/adrianosela/rdtp"
+	"github.com/adrianosela/rdtp/multiplexer"
 	"github.com/adrianosela/rdtp/packet"
 	"github.com/adrianosela/rdtp/ports"
 	"github.com/adrianosela/rdtp/ports/filesystem"
@@ -20,7 +22,7 @@ import (
 type Service struct {
 	unixSock string
 	ports    ports.Manager
-	mux      map[uint16]net.Conn // port number to client conn
+	mux      multiplexer.Mux
 }
 
 // NewService returns the default RDTP service
@@ -30,27 +32,29 @@ func NewService() (*Service, error) {
 		return nil, errors.Wrap(err, "could not init file system ports manager")
 	}
 	return &Service{
-		unixSock: "/tmp/rdtp2.sock",
+		unixSock: "/tmp/rdtp.sock" + "-" + time.Now().String(),
 		ports:    mgr,
+		mux:      multiplexer.NewMapMux(),
 	}, nil
 }
 
 // Start starts the RDTP service
 func (s *Service) Start() error {
-	// l, err := net.Listen("unix", s.unixSock)
-	// if err != nil {
-	// 	return errors.Wrap(err, "could not listen on unix socket")
-	// }
-	// defer l.Close()
+	l, err := net.Listen("unix", s.unixSock)
+	if err != nil {
+		return errors.Wrap(err, "could not listen on unix socket")
+	}
+	defer l.Close()
 
 	go s.listenRDTP()
 	for {
-		// conn, err := l.Accept()
-		// if err != nil {
-		// 	log.Println(errors.Wrap(err, "could not accept rdtp client connection"))
-		// 	continue
-		// }
-		// go s.serveClient(conn)
+		conn, err := l.Accept()
+		if err != nil {
+			log.Println(errors.Wrap(err, "could not accept rdtp client connection"))
+			continue
+		}
+
+		go s.serveClient(conn)
 	}
 }
 
@@ -81,15 +85,7 @@ func (s *Service) listenRDTP() {
 			continue
 		}
 
-		if !rdtpPacket.Check() {
-			log.Println("failed checksum, packet dropped")
-			continue
-		}
-
-		if err = s.MultiplexPacket(rdtpPacket); err != nil {
-			log.Println(errors.Wrap(err, "could not multiplex rdtp packet"))
-			continue
-		}
+		s.mux.MultiplexPacket(rdtpPacket) // note the ignored error
 	}
 }
 
@@ -99,8 +95,7 @@ func (s *Service) serveClient(c net.Conn) {
 		log.Println(errors.Wrap(err, "[RDTP] could not allocate port for client"))
 		return
 	}
+	s.mux.Attach(p, c)
 
-	s.mux[p] = c // attach client connection to MUX
-
-	// TODO
+	// TODO?
 }

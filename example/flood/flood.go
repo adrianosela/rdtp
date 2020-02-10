@@ -33,6 +33,6 @@ func main() {
 			log.Fatal(errors.Wrap(err, "could not send data to network socket"))
 		}
 
-		time.Sleep(time.Second/1000 * 10)
+		time.Sleep(time.Second / 1000 * 10)
 	}
 }
