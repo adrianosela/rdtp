@@ -5,6 +5,7 @@ import (
 	"log"
 	"math/rand"
 	"syscall"
+	"time"
 
 	"github.com/adrianosela/rdtp"
 	"github.com/adrianosela/rdtp/packet"
@@ -31,5 +32,7 @@ func main() {
 		if err = syscall.Sendto(fd, p.Serialize(), 0, &addr); err != nil {
 			log.Fatal(errors.Wrap(err, "could not send data to network socket"))
 		}
+
+		time.Sleep(time.Second/1000 * 10)
 	}
 }
