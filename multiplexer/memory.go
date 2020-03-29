@@ -41,6 +41,7 @@ func (m *MapMux) MultiplexPacket(p *packet.Packet) error {
 
 	if _, err := conn.Write(p.Payload); err != nil {
 		log.Print(fmt.Sprintf("%s %s", info, "✘ [ERROR]"))
+		m.Detach(p.DstPort) // close port on error
 		return errors.New("could not forward payload to client")
 	}
 
