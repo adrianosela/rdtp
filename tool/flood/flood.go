@@ -19,11 +19,11 @@ func main() {
 		log.Fatal(errors.Wrap(err, "could not get raw network socket"))
 	}
 	// define destination address
-	addr := syscall.SockaddrInet4{Addr: [4]byte{127, 0, 0, 1}}
+	addr := syscall.SockaddrInet4{Addr: [4]byte{192, 168, 1, 75}}
 
 	fmt.Println("Flooding target with RDTP packets...")
 	for {
-		p, err := packet.NewPacket(uint16(14), uint16(rand.Intn(65534)+1), nil)
+		p, err := packet.NewPacket(uint16(rand.Intn(65534)+1), uint16(2), nil)
 		if err != nil {
 			log.Println(errors.Wrap(err, "could not build rdtp packet for sending"))
 			continue

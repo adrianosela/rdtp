@@ -20,7 +20,7 @@ func main() {
 	}
 
 	// define destination address (on loopback for now)
-	addr := syscall.SockaddrInet4{Addr: [4]byte{127, 0, 0, 1}}
+	addr := syscall.SockaddrInet4{Addr: [4]byte{192, 168, 1, 75}}
 
 	fmt.Println("Anything written here will be sent over RDTP packets:")
 	reader := bufio.NewReader(os.Stdin)
@@ -29,7 +29,7 @@ func main() {
 		text, _ := reader.ReadString('\n')
 
 		// wrap it in a packet
-		p, err := packet.NewPacket(uint16(14), uint16(7), []byte(text)[:len(text)-1])
+		p, err := packet.NewPacket(uint16(14), uint16(2), []byte(text)[:len(text)-1])
 		if err != nil {
 			log.Println(errors.Wrap(err, "could not build rdtp packet for sending"))
 		}
