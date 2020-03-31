@@ -65,7 +65,7 @@ func (s *Service) Start() error {
 			continue
 		}
 
-		go s.serveClient(conn)
+		go s.handleUser(conn)
 	}
 }
 
@@ -100,13 +100,15 @@ func (s *Service) listenRDTP() {
 	}
 }
 
-func (s *Service) serveClient(c net.Conn) {
-	p, err := s.ports.AllocateAny()
-	if err != nil {
-		log.Println(errors.Wrap(err, "[RDTP] could not allocate port for client"))
-		return
-	}
-	s.mux.Attach(p, c)
-	log.Printf("[RDTP] new client on port %d", p)
+func (s *Service) handleUser(c net.Conn) {
+	// receive port number request
+	s.ports.
+	//p, err := s.ports.AllocateAny()
+	//if err != nil {
+	//	log.Println(errors.Wrap(err, "[RDTP] could not allocate port for client"))
+	//	return
+	//}
+	//s.mux.Attach(p, c)
+	//log.Printf("[RDTP] new client on port %d", p)
 	// TODO
 }

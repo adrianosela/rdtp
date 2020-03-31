@@ -11,11 +11,11 @@ const (
 	// Network is the name of the RDTP network
 	Network = "rdtp"
 
-	// DiscoveryPort is the port that receives SYN packets
+	// DiscoveryPort is the port that receives new RDTP connections
 	DiscoveryPort = uint16(0)
 
 	// DefaultRDTPServiceAddr is the default rdtp service socket
-	DefaultRDTPServiceAddr = "/tmp/rdtp.sock"
+	DefaultRDTPServiceAddr = "/var/run/rdtp.sock"
 )
 
 // Addr represents an RDTP address.
