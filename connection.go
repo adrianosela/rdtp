@@ -12,7 +12,7 @@ type Conn struct {
 }
 
 // Dial establishes an RDTP connection with a remote IP host
-func Dial(ip []byte) (*Conn, error) {
+func Dial(address string) (*Conn, error) {
 	c, err := net.Dial("unix", DefaultRDTPServiceAddr)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not acquire RDTP service connection")

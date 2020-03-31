@@ -17,7 +17,7 @@ import (
 )
 
 // Service represents the RDTP service which is in charge of two tasks:
-// - handing out RDTP connections to service clients on "this" host
+// - handling RDTP connections to service clients on "this" host
 // - listening for RDTP packets over IP and multiplexing to their rdtp client
 type Service struct {
 	unixSock string
@@ -27,7 +27,7 @@ type Service struct {
 
 // NewService returns the default RDTP service
 func NewService() (*Service, error) {
-	mgr, err := filesystem.NewFSManager("")
+	mgr, err := filesystem.NewFSManager("") // FIXME
 	if err != nil {
 		return nil, errors.Wrap(err, "could not init file system ports manager")
 	}
@@ -101,14 +101,14 @@ func (s *Service) listenRDTP() {
 }
 
 func (s *Service) handleUser(c net.Conn) {
-	// receive port number request
-	s.ports.
-	//p, err := s.ports.AllocateAny()
-	//if err != nil {
-	//	log.Println(errors.Wrap(err, "[RDTP] could not allocate port for client"))
-	//	return
-	//}
-	//s.mux.Attach(p, c)
-	//log.Printf("[RDTP] new client on port %d", p)
-	// TODO
+	// TODO: receive port number request
+
+	// FIXME: remove this
+	p, err := s.ports.AllocateAny()
+	if err != nil {
+		log.Println(errors.Wrap(err, "[RDTP] could not allocate port for client"))
+		return
+	}
+	s.mux.Attach(p, c)
+	log.Printf("[RDTP] new client on port %d", p)
 }
