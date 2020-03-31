@@ -11,8 +11,6 @@ import (
 	"github.com/adrianosela/rdtp"
 	"github.com/adrianosela/rdtp/multiplexer"
 	"github.com/adrianosela/rdtp/packet"
-	"github.com/adrianosela/rdtp/ports"
-	"github.com/adrianosela/rdtp/ports/filesystem"
 	"github.com/pkg/errors"
 )
 
@@ -21,20 +19,14 @@ import (
 // - listening for RDTP packets over IP and multiplexing to their rdtp client
 type Service struct {
 	unixSock string
-	ports    ports.Manager
 	mux      multiplexer.Mux
 }
 
 // NewService returns the default RDTP service
 func NewService() (*Service, error) {
-	mgr, err := filesystem.NewFSManager("") // FIXME
-	if err != nil {
-		return nil, errors.Wrap(err, "could not init file system ports manager")
-	}
 	return &Service{
 		unixSock: rdtp.DefaultRDTPServiceAddr,
-		ports:    mgr,
-		mux:      multiplexer.NewMapMux(),
+		mux:      multiplexer.NewMemoryMux(),
 	}, nil
 }
 
@@ -100,15 +92,18 @@ func (s *Service) listenRDTP() {
 	}
 }
 
-func (s *Service) handleUser(c net.Conn) {
+func (s *Service) handleUser(c net.Conn) error {
+	defer c.Close() // ensure we close conn
+
 	// TODO: receive port number request
 
-	// FIXME: remove this
-	p, err := s.ports.AllocateAny()
+	p, err := s.mux.AttachAny(c)
 	if err != nil {
-		log.Println(errors.Wrap(err, "[RDTP] could not allocate port for client"))
-		return
+		return errors.Wrap(err, "could not associate connection with port")
 	}
-	s.mux.Attach(p, c)
 	log.Printf("[RDTP] new client on port %d", p)
+
+	// FIXME
+	for {
+	}
 }
