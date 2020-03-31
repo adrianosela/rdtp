@@ -43,7 +43,7 @@ func (s *Service) Start() error {
 	signal.Notify(sigChan, os.Interrupt, os.Kill, syscall.SIGTERM)
 	go func(c chan os.Signal) {
 		sig := <-c
-		log.Printf("[RDTP] signal %s: shutting down.", sig)
+		log.Printf("[rdtp] signal %s: shutting down.", sig)
 		l.Close()
 		os.Exit(0)
 	}(sigChan)
@@ -68,7 +68,7 @@ func (s *Service) listenRDTP() {
 	}
 	f := os.NewFile(uintptr(fd), fmt.Sprintf("fd %d", fd))
 
-	fmt.Println("listening for RDTP on all local network interfaces")
+	log.Printf("[rdtp] listening for RDTP packets on all local network interfaces")
 	for {
 		buf := make([]byte, 1500) // maximum RDTP packet
 
@@ -101,7 +101,7 @@ func (s *Service) handleUser(c net.Conn) error {
 	if err != nil {
 		return errors.Wrap(err, "could not associate connection with port")
 	}
-	log.Printf("[RDTP] new client on port %d", p)
+	log.Printf("[rdtp] new client on port %d", p)
 
 	// FIXME
 	for {
