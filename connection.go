@@ -11,6 +11,8 @@ import (
 // https://golang.org/pkg/net/#Conn
 type Conn struct {
 	client net.Conn
+	laddr  net.Addr
+	raddr  net.Addr
 }
 
 // Dial establishes an RDTP connection with a remote IP host
@@ -19,6 +21,8 @@ func Dial(address string) (*Conn, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "could not acquire RDTP service connection")
 	}
+	// laddr = network IP (i.e. 192.168.1/24) (will be changed by NAT)
+	// raddr = destination IP given
 	return &Conn{
 		client: c,
 	}, nil
@@ -41,29 +45,25 @@ func (c *Conn) Write(data []byte) (int, error) {
 
 // LocalAddr returns the local network address.
 func (c *Conn) LocalAddr() net.Addr {
-	// TODO
-	return nil
+	return c.laddr
 }
 
 // RemoteAddr returns the remote network address.
 func (c *Conn) RemoteAddr() net.Addr {
-	// TODO
-	return nil
+	return c.raddr
 }
 
 // SetDeadline sets the read and write deadlines associated
 // with the connection.
 func (c *Conn) SetDeadline(t time.Time) error {
-	// TODO
-	return nil
+	return c.SetDeadline(t)
 }
 
 // SetReadDeadline sets the deadline for future Read calls
 // and any currently-blocked Read call.
 // A zero value for t means Read will not time out.
 func (c *Conn) SetReadDeadline(t time.Time) error {
-	// TODO
-	return nil
+	return c.SetReadDeadline(t)
 }
 
 // SetWriteDeadline sets the deadline for future Write calls
@@ -72,6 +72,5 @@ func (c *Conn) SetReadDeadline(t time.Time) error {
 // some of the data was successfully written.
 // A zero value for t means Write will not time out.
 func (c *Conn) SetWriteDeadline(t time.Time) error {
-	// TODO
-	return nil
+	return c.SetWriteDeadline(t)
 }
