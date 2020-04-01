@@ -95,15 +95,9 @@ func (s *Service) listenRDTP() {
 func (s *Service) handleUser(c net.Conn) error {
 	defer c.Close() // ensure we close conn
 
-	// TODO: receive port number request
-
-	p, err := s.mux.AttachAny(c)
-	if err != nil {
-		return errors.Wrap(err, "could not associate connection with port")
-	}
-	log.Printf("[rdtp] new client on port %d", p)
-
-	// FIXME
 	for {
+		// receive calls
+		// respond to calls
+		// close connection
 	}
 }
