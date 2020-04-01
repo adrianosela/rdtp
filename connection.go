@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Conn implements the net.Conn interface
+// Conn implements *part* of the net.Conn interface
 // https://golang.org/pkg/net/#Conn
 type Conn struct {
 	client net.Conn
@@ -51,26 +51,4 @@ func (c *Conn) LocalAddr() net.Addr {
 // RemoteAddr returns the remote network address.
 func (c *Conn) RemoteAddr() net.Addr {
 	return c.raddr
-}
-
-// SetDeadline sets the read and write deadlines associated
-// with the connection.
-func (c *Conn) SetDeadline(t time.Time) error {
-	return c.SetDeadline(t)
-}
-
-// SetReadDeadline sets the deadline for future Read calls
-// and any currently-blocked Read call.
-// A zero value for t means Read will not time out.
-func (c *Conn) SetReadDeadline(t time.Time) error {
-	return c.SetReadDeadline(t)
-}
-
-// SetWriteDeadline sets the deadline for future Write calls
-// and any currently-blocked Write call.
-// Even if write times out, it may return n > 0, indicating that
-// some of the data was successfully written.
-// A zero value for t means Write will not time out.
-func (c *Conn) SetWriteDeadline(t time.Time) error {
-	return c.SetWriteDeadline(t)
 }
