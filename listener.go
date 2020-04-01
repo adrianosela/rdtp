@@ -29,8 +29,8 @@ func Listen(address string) (*Listener, error) {
 
 	return &Listener{
 		addr: &Addr{
-			ip:   host,
-			port: uint16(port),
+			IP:   host,
+			Port: uint16(port),
 		},
 	}, nil
 }

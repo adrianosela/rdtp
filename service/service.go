@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -12,6 +13,13 @@ import (
 	"github.com/adrianosela/rdtp/multiplexer"
 	"github.com/adrianosela/rdtp/packet"
 	"github.com/pkg/errors"
+)
+
+const (
+	// ConfigModeListen sets the rdtp client connection in listener mode
+	ConfigModeListen = "LISTEN"
+	// ConfigModeDial sets the rdtp client connection in dial mode
+	ConfigModeDial = "DIAL"
 )
 
 // Service represents the RDTP service which is in charge of two tasks:
@@ -48,7 +56,7 @@ func (s *Service) Start() error {
 		os.Exit(0)
 	}(sigChan)
 
-	go s.listenRDTP()
+	go s.rdtpMux()
 
 	for {
 		conn, err := l.Accept()
@@ -61,7 +69,7 @@ func (s *Service) Start() error {
 	}
 }
 
-func (s *Service) listenRDTP() {
+func (s *Service) rdtpMux() {
 	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_RAW, rdtp.IPProtoRDTP)
 	if err != nil {
 		log.Fatal(errors.Wrap(err, "could not get raw network socket"))
@@ -92,12 +100,36 @@ func (s *Service) listenRDTP() {
 	}
 }
 
+// Config is the message configuring the rdtp service client
+type Config struct {
+	Mode string    `json:"opmode"`
+	Addr rdtp.Addr `json:"addr"`
+}
+
 func (s *Service) handleUser(c net.Conn) error {
 	defer c.Close() // ensure we close conn
 
+	configBytes := make([]byte, 100) // allow configs up to 100 bytes
+	n, err := c.Read(configBytes)
+	if err != nil {
+		return errors.Wrap(err, "could not read config from rdtp client")
+	}
+
+	var conf *Config
+	if err := json.Unmarshal(configBytes[:n], &conf); err != nil {
+		return errors.Wrap(err, "could not unmarshal config from rdtp client")
+	}
+
+	switch conf.Mode {
+	case ConfigModeDial:
+
+	case ConfigModeListen:
+		// TODO: implement - now fallthrough to error
+	default:
+		return errors.New("invalid mode, disconnecting client")
+	}
+
 	for {
-		// receive calls
-		// respond to calls
-		// close connection
+
 	}
 }
