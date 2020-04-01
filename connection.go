@@ -2,7 +2,6 @@ package rdtp
 
 import (
 	"net"
-	"time"
 
 	"github.com/pkg/errors"
 )

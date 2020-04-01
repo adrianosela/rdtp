@@ -14,8 +14,8 @@ type Listener struct {
 	addr *Addr
 }
 
-// Listen returns an rdtp listener wrapped in a net.Listener interface
-func Listen(address string) (net.Listener, error) {
+// Listen returns an rdtp listener
+func Listen(address string) (*Listener, error) {
 	addr := strings.Split(address, ":")
 
 	host := addr[0]
