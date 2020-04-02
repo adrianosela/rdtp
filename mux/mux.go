@@ -1,4 +1,4 @@
-package multiplexer
+package mux
 
 import (
 	"net"
