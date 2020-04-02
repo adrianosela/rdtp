@@ -19,8 +19,8 @@ func TestNewPacket(t *testing.T) {
 
 // Test the payload size limits are defined exactly
 func TestLimits(t *testing.T) {
-	_, err := NewPacket(uint16(8081), uint16(8082), make([]byte, MaxPayloadByteSize))
+	_, err := NewPacket(uint16(8081), uint16(8082), make([]byte, MaxPayloadBytes))
 	assert.Nil(t, err)
-	_, err = NewPacket(uint16(8081), uint16(8082), make([]byte, MaxPayloadByteSize+1))
+	_, err = NewPacket(uint16(8081), uint16(8082), make([]byte, MaxPayloadBytes+1))
 	assert.NotNil(t, err)
 }
