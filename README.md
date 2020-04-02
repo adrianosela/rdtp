@@ -29,9 +29,9 @@ Specification of a reliable transport layer protocol to be used over IP networks
 +--------+--------+--------+--------+
 |      Length     |    Checksum     |
 +--------+--------+--------+--------+
-|          Sequence Number          | // TODO
+|          Sequence Number          |
 +--------+-----------------+--------+
-|       Acknowledgement Number      | // TODO
+|       Acknowledgement Number      |
 +--------+-----------------+--------+
 |  Flags |                          |
 +--------+                          |

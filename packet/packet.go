@@ -9,7 +9,7 @@ const (
 	MaxPacketBytes = 1500 // will chunk otherwise
 
 	// HeaderByteSize is the byte size of an RDTP header
-	HeaderByteSize = 9
+	HeaderByteSize = 17
 
 	// MaxPayloadBytes is the maximum size of a payload that a single RDTP
 	// packet can carry
@@ -25,6 +25,10 @@ type Packet struct {
 	// processing and integrity
 	Length   uint16
 	Checksum uint16
+
+	// reliability
+	SeqNo uint32
+	AckNo uint32
 
 	Flags uint8 // {SYN, FIN, ACK, ERR, XXXX, XXXX, XXXX, XXXX}
 
@@ -44,9 +48,7 @@ func NewPacket(src, dst uint16, payload []byte) (*Packet, error) {
 		SrcPort: src,
 		DstPort: dst,
 		Length:  uint16(len(payload)),
-		Flags:   uint8(0),
 		Payload: payload,
 	}
-	p.Checksum = p.computeChecksum()
 	return p, nil
 }

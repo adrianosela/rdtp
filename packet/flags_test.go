@@ -17,22 +17,22 @@ func TestFlags(t *testing.T) {
 	}{
 		{
 			FlagName:  "SYN",
-			SetFunc:   func() { p.SetSYN() },
+			SetFunc:   func() { p.SetFlagSYN() },
 			CheckFunc: func() bool { return p.IsSYN() },
 		},
 		{
 			FlagName:  "ACK",
-			SetFunc:   func() { p.SetACK() },
+			SetFunc:   func() { p.SetFlagACK() },
 			CheckFunc: func() bool { return p.IsACK() },
 		},
 		{
 			FlagName:  "FIN",
-			SetFunc:   func() { p.SetFIN() },
+			SetFunc:   func() { p.SetFlagFIN() },
 			CheckFunc: func() bool { return p.IsFIN() },
 		},
 		{
 			FlagName:  "ERR",
-			SetFunc:   func() { p.SetERR() },
+			SetFunc:   func() { p.SetFlagERR() },
 			CheckFunc: func() bool { return p.IsERR() },
 		},
 	}

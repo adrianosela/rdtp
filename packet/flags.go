@@ -7,23 +7,23 @@ const (
 	errMask = 0x10
 )
 
-// SetSYN sets the SYN flag on a packet
-func (p *Packet) SetSYN() {
+// SetFlagSYN sets the SYN flag on a packet
+func (p *Packet) SetFlagSYN() {
 	p.Flags = p.Flags | synMask
 }
 
-// SetACK sets the ACK flag on a packet
-func (p *Packet) SetACK() {
+// SetFlagACK sets the ACK flag on a packet
+func (p *Packet) SetFlagACK() {
 	p.Flags = p.Flags | ackMask
 }
 
-// SetFIN sets the FIN flag on a packet
-func (p *Packet) SetFIN() {
+// SetFlagFIN sets the FIN flag on a packet
+func (p *Packet) SetFlagFIN() {
 	p.Flags = p.Flags | finMask
 }
 
-// SetERR sets the ERR flag on a packet
-func (p *Packet) SetERR() {
+// SetFlagERR sets the ERR flag on a packet
+func (p *Packet) SetFlagERR() {
 	p.Flags = p.Flags | errMask
 }
 
