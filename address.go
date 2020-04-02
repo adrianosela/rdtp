@@ -8,7 +8,7 @@ const Network = "rdtp"
 // Addr implements the net.Addr interface
 // https://golang.org/pkg/net/#Addr
 type Addr struct {
-	IP   string `json:"ip"`
+	Host string `json:"host"`
 	Port uint16 `json:"port"`
 }
 
@@ -19,5 +19,5 @@ func (a *Addr) Network() string {
 
 // String returns the string form of the address
 func (a *Addr) String() string {
-	return fmt.Sprintf("%s:%d", a.IP, a.Port)
+	return fmt.Sprintf("%s:%d", a.Host, a.Port)
 }
