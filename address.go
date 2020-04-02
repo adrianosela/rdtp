@@ -2,12 +2,11 @@ package rdtp
 
 import "fmt"
 
-const (
-	// Network is the name of the RDTP network
-	Network = "rdtp"
-)
+// Network is the name of the RDTP network
+const Network = "rdtp"
 
 // Addr implements the net.Addr interface
+// https://golang.org/pkg/net/#Addr
 type Addr struct {
 	IP   string `json:"ip"`
 	Port uint16 `json:"port"`
