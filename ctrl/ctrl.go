@@ -1,17 +1,35 @@
 package ctrl
 
 import (
+	"sync"
 	"time"
 
 	"github.com/adrianosela/rdtp/packet"
 )
 
-// Controller is the rdtp transmissions controller.
+// AirTrafficCtrl is the rdtp transmissions controller.
 // It keeps track of packets transmitted but not acknowledged
 // such that if the ack-wait timer times out, the packet will
 // be retransmitted automatically.
-type Controller interface {
-	Send(*packet.Packet)
-	Ack(uint16)
-	SetAckWait(time.Duration)
+type AirTrafficCtrl struct {
+	sync.RWMutex // inherit read/write lock behavior
+
+	inFlight map[uint32]*packet.Packet
+	ackWait  time.Duration
+}
+
+// Ack acknowledges a sent packet
+func (atc *AirTrafficCtrl) Ack(num uint32) {
+	atc.Lock()
+	defer atc.Unlock()
+
+	delete(atc.inFlight, num)
+}
+
+// SetAckWait sets the Ack wait timer time on the controller
+func (atc *AirTrafficCtrl) SetAckWait(t time.Duration) {
+	atc.Lock()
+	defer atc.Unlock()
+
+	atc.ackWait = t
 }
