@@ -47,6 +47,6 @@ The value for the underlying IP header's "Protocol" field must be set to 0x9D (1
 
 Here's a [Wireshark](https://www.wireshark.org/) capture of an RDTP packet over the wire:
 
-![](./docs/img/cap0.png)
+![](./.docs/img/cap0.png)
 
 (The highlighted bytes are the RDTP header + payload)
