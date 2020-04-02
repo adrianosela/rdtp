@@ -6,10 +6,10 @@ import (
 	"github.com/adrianosela/rdtp/packet"
 )
 
-// Controller is the RDTP retransmissions controller.
+// Controller is the RDTP transmissions controller.
 // It keeps track of packets transmitted but not acknowledged
 // such that if the ack-wait timer times out, the packet will
-// be retransmitted.
+// be retransmitted automatically.
 type Controller interface {
 	Send(*packet.Packet)
 	Ack(uint16)
