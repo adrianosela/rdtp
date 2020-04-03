@@ -18,6 +18,15 @@ type AirTrafficCtrl struct {
 	ackWait  time.Duration
 }
 
+// Send: TODO
+func (atc *AirTrafficCtrl) Send(pck *packet.Packet) {
+	atc.Lock()
+	defer atc.Unlock()
+
+	atc.inFlight[pck.SeqNo] = pck
+	// TODO
+}
+
 // Ack acknowledges a sent packet
 func (atc *AirTrafficCtrl) Ack(num uint32) {
 	atc.Lock()
