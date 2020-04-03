@@ -5,11 +5,14 @@ import "fmt"
 // Network is the name of the RDTP network
 const Network = "rdtp"
 
+// Port is an abstraction for rdtp port number
+type Port uint16
+
 // Addr implements the net.Addr interface
 // https://golang.org/pkg/net/#Addr
 type Addr struct {
 	Host string `json:"host"`
-	Port uint16 `json:"port"`
+	Port Port   `json:"port"`
 }
 
 // Network returns the name of the network

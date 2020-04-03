@@ -36,13 +36,13 @@ func Listen(address string) (net.Listener, error) {
 	if len(splt) <= 2 {
 		a.Host = splt[0] // host might be empty, which is okay
 		if splt[1] == "" {
-			a.Port = uint16(0)
+			a.Port = Port(0)
 		} else {
 			port, err := strconv.ParseUint(splt[1], 10, 16)
 			if err != nil {
 				return nil, errors.Wrap(err, "invalid port number")
 			}
-			a.Port = uint16(port)
+			a.Port = Port(port)
 		}
 	}
 
