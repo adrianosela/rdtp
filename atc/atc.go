@@ -18,7 +18,7 @@ type AirTrafficCtrl struct {
 	ackWait  time.Duration
 }
 
-// Send: TODO
+// Send sends a packet while keeping track of it
 func (atc *AirTrafficCtrl) Send(pck *packet.Packet) {
 	atc.Lock()
 	defer atc.Unlock()

@@ -42,7 +42,7 @@ func (n *Network) Send(dstIP string, pck *packet.Packet) error {
 }
 
 // HandleInbound handles listens for rdtp over IPv4
-// and forwards them upsteam
+// and forwards them upstream
 func (n *Network) HandleInbound(fw func(*packet.Packet) error) error {
 	// readable file for socket's file descriptor
 	f := os.NewFile(uintptr(n.sck), fmt.Sprintf("fd %d", n.sck))
