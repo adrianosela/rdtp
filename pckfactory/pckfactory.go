@@ -1,4 +1,4 @@
-package packetizer
+package pckfactory
 
 import (
 	"fmt"
@@ -7,10 +7,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Packetizer formats streams of arbitrary data onto
+// PacketFactory formats streams of arbitrary data onto
 // chunks of a given max size, builds an rdtp packet
 // with the data, and forwards it
-type Packetizer struct {
+type PacketFactory struct {
 	srcPort uint16
 	dstPort uint16
 	fwFunc  func(*packet.Packet) error
@@ -18,11 +18,11 @@ type Packetizer struct {
 }
 
 // New returns a new packetizer
-func New(src, dst uint16, fw func(*packet.Packet) error, size int) (*Packetizer, error) {
+func New(src, dst uint16, fw func(*packet.Packet) error, size int) (*PacketFactory, error) {
 	if size > packet.MaxPayloadBytes {
 		return nil, fmt.Errorf("max size is %d", packet.MaxPayloadBytes)
 	}
-	return &Packetizer{
+	return &PacketFactory{
 		srcPort: src,
 		dstPort: dst,
 		fwFunc:  fw,
@@ -32,22 +32,22 @@ func New(src, dst uint16, fw func(*packet.Packet) error, size int) (*Packetizer,
 
 // Send chops a stream of bytes onto chunks of maximum size
 // and forwards them as soon as they are ready
-func (p *Packetizer) Send(msg []byte) (int, error) {
+func (pf *PacketFactory) Send(msg []byte) (int, error) {
 	var chunk []byte
 
 	rem := msg
 	txBytes := 0
 
-	for len(rem) >= p.size {
-		chunk, rem = rem[:p.size], rem[p.size:]
-		if err := p.packetizeAndForwardChunk(chunk); err != nil {
+	for len(rem) >= pf.size {
+		chunk, rem = rem[:pf.size], rem[pf.size:]
+		if err := pf.packetizeAndForwardChunk(chunk); err != nil {
 			return txBytes, errors.Wrap(err, "could not packatize and forward chunk")
 		}
 		txBytes += len(chunk)
 	}
 
 	if len(rem) > 0 {
-		if err := p.packetizeAndForwardChunk(rem); err != nil {
+		if err := pf.packetizeAndForwardChunk(rem); err != nil {
 			return txBytes, errors.Wrap(err, "could not packatize and forward chunk")
 		}
 		txBytes += len(rem)
@@ -56,12 +56,12 @@ func (p *Packetizer) Send(msg []byte) (int, error) {
 	return txBytes, nil
 }
 
-func (p *Packetizer) packetizeAndForwardChunk(chunk []byte) error {
-	pck, err := packet.NewPacket(p.srcPort, p.dstPort, chunk)
+func (pf *PacketFactory) packetizeAndForwardChunk(chunk []byte) error {
+	pck, err := packet.NewPacket(pf.srcPort, pf.dstPort, chunk)
 	if err != nil {
 		return errors.Wrap(err, "error packetizing message")
 	}
-	if err = p.fwFunc(pck); err != nil {
+	if err = pf.fwFunc(pck); err != nil {
 		return errors.Wrap(err, "error forwarding packet")
 	}
 	return nil

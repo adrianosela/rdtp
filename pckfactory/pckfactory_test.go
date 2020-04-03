@@ -1,4 +1,4 @@
-package packetizer
+package pckfactory
 
 import (
 	"testing"
