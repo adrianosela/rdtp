@@ -17,7 +17,7 @@ type PacketFactory struct {
 	size    int
 }
 
-// New returns a new packetizer
+// New returns a new packet factory
 func New(src, dst uint16, fw func(*packet.Packet) error, size int) (*PacketFactory, error) {
 	if size > packet.MaxPayloadBytes {
 		return nil, fmt.Errorf("max size is %d", packet.MaxPayloadBytes)
