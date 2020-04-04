@@ -9,10 +9,13 @@ import (
 )
 
 // Controller represents the rdtp controller.
-//
-// It essentially foresees the following movement of data:
-// - outbound: user =msg=> socket =pck=> atc =pck=> netwk
-// - inbound: nwtwk =pck=> atc =pck=> socket =msg=> user
+// It foresees the following movement of data:
+// - outbound: user =msg=> socket
+//             * reads from user
+//						 * writes to socket
+// - inbound: nwtwk =pck=> socket
+//             * reads from network
+//						 * writes to socket
 type Controller struct {
 	sync.RWMutex
 
