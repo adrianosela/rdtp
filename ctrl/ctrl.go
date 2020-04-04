@@ -12,10 +12,10 @@ import (
 // It foresees the following movement of data:
 // - outbound: user =msg=> socket
 //             * reads from user
-//						 * writes to socket
+//             * writes to socket
 // - inbound: nwtwk =pck=> socket
 //             * reads from network
-//						 * writes to socket
+//             * writes to socket
 type Controller struct {
 	sync.RWMutex
 
