@@ -1,4 +1,4 @@
-package pckfactory
+package factory
 
 import (
 	"fmt"

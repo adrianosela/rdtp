@@ -6,9 +6,9 @@ import (
 
 	"github.com/adrianosela/rdtp"
 	"github.com/adrianosela/rdtp/atc"
+	"github.com/adrianosela/rdtp/factory"
 	"github.com/adrianosela/rdtp/netwk"
 	"github.com/adrianosela/rdtp/packet"
-	"github.com/adrianosela/rdtp/pckfactory"
 	"github.com/pkg/errors"
 )
 
@@ -22,7 +22,7 @@ type Socket struct {
 	rxBytes uint32 // current ack number
 
 	atc *atc.AirTrafficCtrl
-	pf  *pckfactory.PacketFactory
+	pf  *factory.PacketFactory
 
 	In          chan *packet.Packet
 	application net.Conn
@@ -35,7 +35,7 @@ func NewSocket(lAddr, rAddr *rdtp.Addr, nw *netwk.Network, c net.Conn) (*Socket,
 		nw.Send(rAddr.Host, p)
 	})
 
-	pf, err := pckfactory.New(
+	pf, err := factory.New(
 		uint16(lAddr.Port),
 		uint16(rAddr.Port),
 		func(p *packet.Packet) error {
