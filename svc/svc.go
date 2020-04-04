@@ -1,15 +1,15 @@
 package svc
 
 import (
-	"net"
+	"sync"
 
-	"github.com/adrianosela/rdtp"
+	"github.com/adrianosela/rdtp/socket"
 )
 
 /* Architecture notes:
 
-outbound: user -msg-> svc -msg-> connworker -pck-> atc -pck-> netwk
-inbound: nwtwk -pck-> atc -pck-> connworker -msg-> svc -msg-> user
+outbound: user =msg=> svc =msg=> connworker =pck=> atc =pck=> netwk
+inbound: nwtwk =pck=> atc =pck=> connworker =msg=> svc =msg=> user
 
 - The user is in charge of read() and write() to a net.Conn
 - The svc is in charge of dispatching/killing connection worker for every
@@ -29,14 +29,17 @@ we will worry about listening for inbound SYNs later...
 
 // RDTPService represents the rdtp service
 type RDTPService struct {
-	// usrConns is a map of destination rdtp address
-	// to a map of local rdtp port number
-	usrConns map[rdtp.Addr]map[rdtp.Port]net.Conn
+	sync.RWMutex
+
+	// sockets is a map of sockets where each socket's
+	// unique identifier is "laddr:lport raddr:rport",
+	// e.g. "192.168.1.75:4444 192.168.1.88:1201"
+	sockets map[string]*socket.Socket
 }
 
 // NewRDTPService returns an initialized RDTP service
 func NewRDTPService() *RDTPService {
 	return &RDTPService{
-		usrConns: make(map[rdtp.Addr]map[rdtp.Port]net.Conn),
+		sockets: make(map[string]*socket.Socket),
 	}
 }
