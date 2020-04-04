@@ -29,7 +29,7 @@ func NewMemoryMux() *MemoryMux {
 func (m *MemoryMux) MultiplexPacket(p *packet.Packet) error {
 	info := fmt.Sprintf("[MUX] RX %d ==> %d", p.Length, p.DstPort)
 
-	if !p.Check() {
+	if !p.CheckSum() {
 		log.Print(fmt.Sprintf("%s %s", info, "✘ [CORRUPTED]"))
 		return errors.New("checksum failed")
 	}
@@ -82,7 +82,7 @@ func (m *MemoryMux) AttachAny(c net.Conn) (uint16, error) {
 	defer m.Unlock()
 
 	// give out first unused port
-	for port := uint16(1); port < rdtp.MaxPort; port++ {
+	for port := uint16(1); port < uint16(rdtp.MaxPort); port++ {
 		if _, ok := m.conns[port]; !ok {
 			m.conns[port] = c
 			return port, nil

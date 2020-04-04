@@ -31,8 +31,8 @@ type Socket struct {
 // NewSocket returns a newly allocated socket
 func NewSocket(lAddr, rAddr *rdtp.Addr, nw *netwk.Network, c net.Conn) (*Socket, error) {
 
-	atctrl := atc.NewAirTrafficCtrl(func(p *packet.Packet) error {
-		return nw.Send(rAddr.Host, p)
+	atctrl := atc.NewAirTrafficCtrl(func(p *packet.Packet) {
+		nw.Send(rAddr.Host, p)
 	})
 
 	pf, err := pckfactory.New(

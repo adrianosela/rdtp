@@ -17,13 +17,13 @@ type AirTrafficCtrl struct {
 	sync.RWMutex // inherit read/write lock behavior
 
 	ackWait time.Duration
-	fwFunc  func(*packet.Packet) error
+	fwFunc  func(*packet.Packet)
 
 	inFlight map[uint32]*packet.Packet
 }
 
 // NewAirTrafficCtrl returns the default ATC
-func NewAirTrafficCtrl(fwFunc func(*packet.Packet) error) *AirTrafficCtrl {
+func NewAirTrafficCtrl(fwFunc func(*packet.Packet)) *AirTrafficCtrl {
 	return &AirTrafficCtrl{
 		ackWait:  defaultAckWaitTime,
 		fwFunc:   fwFunc,
