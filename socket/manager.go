@@ -3,7 +3,6 @@ package socket
 import (
 	"sync"
 
-	"github.com/adrianosela/rdtp/netwk"
 	"github.com/pkg/errors"
 )
 
@@ -11,10 +10,6 @@ import (
 // It allocates and deallocates rdtp sockets.
 type Manager struct {
 	sync.RWMutex
-
-	// network is an interface that takes packets
-	// and ships them out to the network
-	network *netwk.Network
 
 	// sockets is a map of sockets where each socket's
 	// unique identifier is "laddr:lport raddr:rport",
@@ -24,12 +19,7 @@ type Manager struct {
 
 // NewManager returns an initialized rdtp sockets manager
 func NewManager() (*Manager, error) {
-	nw, err := netwk.NewNetwork()
-	if err != nil {
-		return nil, errors.Wrap(err, "could not attach controller to network")
-	}
 	return &Manager{
-		network: nw,
 		sockets: make(map[string]*Socket),
 	}, nil
 }
