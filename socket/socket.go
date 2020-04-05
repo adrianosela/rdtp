@@ -2,6 +2,7 @@ package socket
 
 import (
 	"fmt"
+	"log"
 	"net"
 
 	"github.com/adrianosela/rdtp"
@@ -31,16 +32,17 @@ type Socket struct {
 // NewSocket returns a newly allocated socket
 func NewSocket(lAddr, rAddr *rdtp.Addr, nw *netwk.Network, c net.Conn) (*Socket, error) {
 
-	atctrl := atc.NewAirTrafficCtrl(func(p *packet.Packet) {
-		nw.Send(rAddr.Host, p)
+	atctrl := atc.NewAirTrafficCtrl(func(p *packet.Packet) error {
+		err := nw.Send(rAddr.Host, p)
+		if err != nil {
+			log.Printf("[atc] network rejected packet from atc: %s", err)
+		}
+		return err
 	})
 
-	pf, err := factory.New(
-		uint16(lAddr.Port),
-		uint16(rAddr.Port),
+	pf, err := factory.New(uint16(lAddr.Port), uint16(rAddr.Port),
 		func(p *packet.Packet) error {
-			atctrl.Send(p)
-			return nil
+			return atctrl.Send(p)
 		},
 		packet.MaxPayloadBytes)
 	if err != nil {
