@@ -76,7 +76,7 @@ func (ip *IPv4) ForwardRDTP(fw func(*packet.Packet) error) error {
 			continue
 		}
 
-		rdtpPacket.SetIPv4(ipv4)
+		rdtpPacket.SetIPv4Details(ipv4)
 		if err = fw(rdtpPacket); err != nil {
 			log.Println(errors.Wrap(err, "could not forward received rdtp packet"))
 			continue

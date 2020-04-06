@@ -83,7 +83,7 @@ func (m *Manager) Deliver(p *packet.Packet) error {
 }
 
 func idFromPacket(p *packet.Packet) (string, error) {
-	ipv4, err := p.IPv4()
+	ipv4, err := p.IPv4Details()
 	if err != nil {
 		return "", errors.Wrap(err, "no ipv4 data in rdtp packet")
 	}
