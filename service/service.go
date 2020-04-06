@@ -1,23 +1,20 @@
 package service
 
 import (
-	"github.com/adrianosela/rdtp/netwk"
+	"github.com/adrianosela/rdtp/ipv4"
 	"github.com/adrianosela/rdtp/socket"
 	"github.com/pkg/errors"
 )
 
 // Service is an abstraction of the rdtp service
 type Service struct {
-	// network is an interface that takes packets
-	// and ships them out to the network
-	network *netwk.Network
-
-	sckmgr *socket.Manager
+	network *ipv4.IPv4
+	sckmgr  *socket.Manager
 }
 
 // NewService returns an rdtp service instance
 func NewService() (*Service, error) {
-	nw, err := netwk.NewNetwork()
+	ip, err := ipv4.NewIPv4()
 	if err != nil {
 		return nil, errors.Wrap(err, "could not acquire network")
 	}
@@ -26,7 +23,14 @@ func NewService() (*Service, error) {
 		return nil, errors.Wrap(err, "could not initialize socket manager")
 	}
 	return &Service{
-		network: nw,
+		network: ip,
 		sckmgr:  mgr,
 	}, nil
+}
+
+// Start starts the rdtp service
+func (s *Service) Start() error {
+	for {
+		// TODO
+	}
 }

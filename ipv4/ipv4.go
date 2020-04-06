@@ -1,4 +1,4 @@
-package netwk
+package ipv4
 
 import (
 	"fmt"
@@ -13,39 +13,41 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Network represents the underlying IPv4 network
-type Network struct {
+// IPv4 represents the underlying IPv4 network
+// and functions to interact with the network
+// interface
+type IPv4 struct {
 	sck int
 }
 
-// NewNetwork returns a new network interface
-func NewNetwork() (*Network, error) {
+// NewIPv4 returns a new ipv4 network interface
+func NewIPv4() (*IPv4, error) {
 	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_RAW, rdtp.IPProtoRDTP)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not get raw network socket")
 	}
-	return &Network{
+	return &IPv4{
 		sck: fd,
 	}, nil
 }
 
 // Send sends a packet to the destination IP address
-func (n *Network) Send(dstIP string, pck *packet.Packet) error {
+func (ip *IPv4) Send(dstIP string, pck *packet.Packet) error {
 	remoteAddr, err := parseAddr(dstIP)
 	if err != nil {
 		return errors.Wrap(err, "could not parse ip address")
 	}
-	if err := syscall.Sendto(n.sck, pck.Serialize(), 0, remoteAddr); err != nil {
+	if err := syscall.Sendto(ip.sck, pck.Serialize(), 0, remoteAddr); err != nil {
 		return errors.Wrap(err, "could not send data to network socket")
 	}
 	return nil
 }
 
-func (n *Network) RegisterChannel(fw func(*packet.Packet) error) error {
+func (ip *IPv4) PacketListener(next func(*packet.Packet) error) error {
 	// readable file for socket's file descriptor
-	f := os.NewFile(uintptr(n.sck), fmt.Sprintf("fd %d", n.sck))
+	f := os.NewFile(uintptr(ip.sck), fmt.Sprintf("fd %d", ip.sck))
 
-	fmt.Println("listening on all local network interfaces")
+	fmt.Println("listening network interfaces: /* TODO */")
 
 	for {
 		buf := make([]byte, 65535) // maximum IP packet
@@ -66,7 +68,7 @@ func (n *Network) RegisterChannel(fw func(*packet.Packet) error) error {
 			continue
 		}
 
-		if err = fw(rdtpPacket); err != nil {
+		if err = next(rdtpPacket); err != nil {
 			log.Println(errors.Wrap(err, "could not forward received rdtp packet"))
 			continue
 		}

@@ -8,7 +8,7 @@ import (
 	"github.com/adrianosela/rdtp"
 	"github.com/adrianosela/rdtp/atc"
 	"github.com/adrianosela/rdtp/factory"
-	"github.com/adrianosela/rdtp/netwk"
+	"github.com/adrianosela/rdtp/ipv4"
 	"github.com/adrianosela/rdtp/packet"
 	"github.com/pkg/errors"
 )
@@ -30,10 +30,10 @@ type Socket struct {
 }
 
 // NewSocket returns a newly allocated socket
-func NewSocket(lAddr, rAddr *rdtp.Addr, nw *netwk.Network, c net.Conn) (*Socket, error) {
+func NewSocket(lAddr, rAddr *rdtp.Addr, ip *ipv4.IPv4, c net.Conn) (*Socket, error) {
 
 	atctrl := atc.NewAirTrafficCtrl(func(p *packet.Packet) error {
-		err := nw.Send(rAddr.Host, p)
+		err := ip.Send(rAddr.Host, p)
 		if err != nil {
 			log.Printf("[atc] network rejected packet from atc: %s", err)
 		}
