@@ -2,6 +2,8 @@ package packet
 
 import (
 	"fmt"
+
+	"github.com/google/gopacket/layers"
 )
 
 const (
@@ -18,6 +20,11 @@ const (
 
 // Packet is an RDTP packet
 type Packet struct {
+	// the controller needs to know some network
+	// layer details. e.g. ip addresses for
+	// identifying recieving socket
+	ipv4 *layers.IPv4
+
 	// connection identifyers
 	SrcPort uint16
 	DstPort uint16

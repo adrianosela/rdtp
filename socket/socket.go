@@ -25,12 +25,12 @@ type Socket struct {
 	atc *atc.AirTrafficCtrl
 	pf  *factory.PacketFactory
 
-	In          chan *packet.Packet
+	inbound     chan *packet.Packet
 	application net.Conn
 }
 
 // NewSocket returns a newly allocated socket
-func NewSocket(lAddr, rAddr *rdtp.Addr, ip *ipv4.IPv4, c net.Conn) (*Socket, error) {
+func NewSocket(lAddr, rAddr *rdtp.Addr, ip *ipv4.IPv4, appConn net.Conn) (*Socket, error) {
 
 	atctrl := atc.NewAirTrafficCtrl(func(p *packet.Packet) error {
 		err := ip.Send(rAddr.Host, p)
@@ -52,10 +52,10 @@ func NewSocket(lAddr, rAddr *rdtp.Addr, ip *ipv4.IPv4, c net.Conn) (*Socket, err
 	s := &Socket{
 		lAddr:       lAddr,
 		rAddr:       rAddr,
-		application: c,
+		application: appConn,
 		atc:         atctrl,
 		pf:          pf,
-		In:          make(chan *packet.Packet),
+		inbound:     make(chan *packet.Packet),
 	}
 
 	go s.receiver()
@@ -86,7 +86,7 @@ func (s *Socket) Close() error {
 
 func (s *Socket) receiver() {
 	for {
-		p := <-s.In
+		p := <-s.inbound
 
 		s.atc.Ack(p.AckNo)             // acknowledge received packet
 		s.rxBytes += uint32(p.Length)  // keep track of stats

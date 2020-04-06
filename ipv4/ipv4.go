@@ -10,6 +10,8 @@ import (
 
 	"github.com/adrianosela/rdtp"
 	"github.com/adrianosela/rdtp/packet"
+	"github.com/google/gopacket"
+	"github.com/google/gopacket/layers"
 	"github.com/pkg/errors"
 )
 
@@ -17,7 +19,7 @@ import (
 // and functions to interact with the network
 // interface
 type IPv4 struct {
-	sck int
+	sckfd int
 }
 
 // NewIPv4 returns a new ipv4 network interface
@@ -27,7 +29,7 @@ func NewIPv4() (*IPv4, error) {
 		return nil, errors.Wrap(err, "could not get raw network socket")
 	}
 	return &IPv4{
-		sck: fd,
+		sckfd: fd,
 	}, nil
 }
 
@@ -37,43 +39,49 @@ func (ip *IPv4) Send(dstIP string, pck *packet.Packet) error {
 	if err != nil {
 		return errors.Wrap(err, "could not parse ip address")
 	}
-	if err := syscall.Sendto(ip.sck, pck.Serialize(), 0, remoteAddr); err != nil {
+	if err := syscall.Sendto(ip.sckfd, pck.Serialize(), 0, remoteAddr); err != nil {
 		return errors.Wrap(err, "could not send data to network socket")
 	}
 	return nil
 }
 
-func (ip *IPv4) PacketListener(next func(*packet.Packet) error) error {
-	// readable file for socket's file descriptor
-	f := os.NewFile(uintptr(ip.sck), fmt.Sprintf("fd %d", ip.sck))
-
-	fmt.Println("listening network interfaces: /* TODO */")
-
+// ForwardRDTP forwards all received IP packets carrying rdtp
+func (ip *IPv4) ForwardRDTP(fw func(*packet.Packet) error) error {
+	rdtpFile := os.NewFile(uintptr(ip.sckfd), fmt.Sprintf("fd %d", ip.sckfd))
+	buf := make([]byte, 65535) // maximum IP packet
 	for {
-		buf := make([]byte, 65535) // maximum IP packet
-
-		ipDatagramSize, err := f.Read(buf)
+		ipDatagramSize, err := rdtpFile.Read(buf)
 		if err != nil {
 			log.Println(errors.Wrap(err, "could not read data from network socket"))
 			continue
 		}
 
-		rawIP := []byte(buf)[:ipDatagramSize]
-		ihl := 4 * (rawIP[0] & byte(15))
-		rawRDTP := rawIP[ihl:]
+		// decode ipv4
+		networkPck := gopacket.NewPacket(
+			buf[:ipDatagramSize],
+			layers.LayerTypeIPv4,
+			gopacket.Default)
+		ipv4NetworkData := networkPck.Layer(layers.LayerTypeIPv4)
 
-		rdtpPacket, err := packet.Deserialize(rawRDTP)
+		if ipv4NetworkData == nil {
+			log.Println("not an ipv4 packet")
+			continue
+		}
+
+		ipv4 := ipv4NetworkData.(*layers.IPv4)
+
+		rdtpPacket, err := packet.Deserialize(ipv4.Payload)
 		if err != nil {
 			log.Println(errors.Wrap(err, "could not deserialize rdtp packet"))
 			continue
 		}
 
-		if err = next(rdtpPacket); err != nil {
+		rdtpPacket.SetIPv4(ipv4)
+		if err = fw(rdtpPacket); err != nil {
 			log.Println(errors.Wrap(err, "could not forward received rdtp packet"))
 			continue
 		}
 	}
-
 }
 
 func parseAddr(ip string) (*syscall.SockaddrInet4, error) {

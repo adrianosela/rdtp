@@ -1,8 +1,10 @@
 package socket
 
 import (
+	"fmt"
 	"sync"
 
+	"github.com/adrianosela/rdtp/packet"
 	"github.com/pkg/errors"
 )
 
@@ -59,4 +61,33 @@ func (m *Manager) Evict(id string) error {
 	}
 	delete(m.sockets, id)
 	return nil
+}
+
+// Deliver delivers an inbound rdtp packet
+func (m *Manager) Deliver(p *packet.Packet) error {
+	id, err := idFromPacket(p)
+	if err != nil {
+		return errors.Wrap(err, "could not build socket address from packet data")
+	}
+
+	m.RLock()
+	s, ok := m.sockets[id]
+	m.RUnlock()
+
+	if !ok {
+		errors.New("socket address not active")
+	}
+
+	s.inbound <- p
+	return nil
+}
+
+func idFromPacket(p *packet.Packet) (string, error) {
+	ipv4, err := p.IPv4()
+	if err != nil {
+		return "", errors.Wrap(err, "no ipv4 data in rdtp packet")
+	}
+	return fmt.Sprintf("%s:%d %s:%d",
+		ipv4.DstIP.String(), p.DstPort,
+		ipv4.SrcIP.String(), p.SrcPort), nil
 }

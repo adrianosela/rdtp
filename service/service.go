@@ -2,6 +2,7 @@ package service
 
 import (
 	"github.com/adrianosela/rdtp/ipv4"
+	"github.com/adrianosela/rdtp/packet"
 	"github.com/adrianosela/rdtp/socket"
 	"github.com/pkg/errors"
 )
@@ -10,6 +11,8 @@ import (
 type Service struct {
 	network *ipv4.IPv4
 	sckmgr  *socket.Manager
+
+	inbound chan *packet.Packet
 }
 
 // NewService returns an rdtp service instance
@@ -30,7 +33,15 @@ func NewService() (*Service, error) {
 
 // Start starts the rdtp service
 func (s *Service) Start() error {
+	// forward all rdtp packets received on the network to their socket
+	go s.network.ForwardRDTP(func(p *packet.Packet) error {
+		if err := s.sckmgr.Deliver(p); err != nil {
+			return errors.Wrap(err, "could not deliver packet to rdtp socket")
+		}
+		return nil
+	})
+
 	for {
-		// TODO
+		/* TODO */
 	}
 }
