@@ -13,8 +13,8 @@ const (
 	// HeaderByteSize is the byte size of an RDTP header
 	HeaderByteSize = 17
 
-	// MaxPayloadBytes is the maximum size of a payload that a single RDTP
-	// packet can carry
+	// MaxPayloadBytes is the maximum size of a payload that
+	// a single RDTP packet can carry
 	MaxPayloadBytes = MaxPacketBytes - HeaderByteSize
 )
 
@@ -47,7 +47,7 @@ type Packet struct {
 func NewPacket(src, dst uint16, payload []byte) (*Packet, error) {
 	if len(payload) > MaxPayloadBytes {
 		return nil, fmt.Errorf(
-			"Invalid RDTP payload. Payload length %d more than %d bytes",
+			"invalid rdtp payload - payload length %d more than %d bytes",
 			len(payload),
 			MaxPayloadBytes,
 		)
