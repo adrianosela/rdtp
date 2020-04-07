@@ -2,13 +2,10 @@ package socket
 
 import (
 	"fmt"
-	"log"
 	"net"
 
 	"github.com/adrianosela/rdtp"
-	"github.com/adrianosela/rdtp/atc"
 	"github.com/adrianosela/rdtp/factory"
-	"github.com/adrianosela/rdtp/ipv4"
 	"github.com/adrianosela/rdtp/packet"
 	"github.com/pkg/errors"
 )
@@ -22,46 +19,68 @@ type Socket struct {
 	txBytes uint32 // current sequence number
 	rxBytes uint32 // current ack number
 
-	atc *atc.AirTrafficCtrl
-	pf  *factory.PacketFactory
-
-	inbound     chan *packet.Packet
+	// connection to app layer
 	application net.Conn
+
+	// messages are read from application
+	// and sent to the packet factory for
+	// formatting and to then be sent out
+	outbound *factory.PacketFactory
+
+	// packets received at the network
+	// are ultimately delivered in this
+	// channel to be read by the socket
+	// and be written as messages to
+	// the application layer
+	inbound chan *packet.Packet
+}
+
+// Config is the necessary configuration to initialize a socket
+type Config struct {
+	LocalAddr  *rdtp.Addr // local rdtp address
+	RemoteAddr *rdtp.Addr // remote rdtp address
+
+	ToApplicationLayer net.Conn
+	ToController       func(p *packet.Packet) error
 }
 
 // NewSocket returns a newly allocated socket
-func NewSocket(lAddr, rAddr *rdtp.Addr, ip *ipv4.IPv4, appConn net.Conn) (*Socket, error) {
+func NewSocket(c Config) (*Socket, error) {
+	if c.LocalAddr == nil {
+		return nil, errors.New("local address cannot be nil")
+	}
+	if c.RemoteAddr == nil {
+		return nil, errors.New("remote address cannot be nil")
+	}
+	if c.ToApplicationLayer == nil {
+		return nil, errors.New("connection to application layer cannot be nil")
+	}
+	if c.ToController == nil {
+		return nil, errors.New("connection to controller cannot be nil")
+	}
 
-	atctrl := atc.NewAirTrafficCtrl(func(p *packet.Packet) error {
-		err := ip.Send(rAddr.Host, p)
-		if err != nil {
-			log.Printf("[atc] network rejected packet from atc: %s", err)
-		}
-		return err
-	})
-
-	pf, err := factory.New(uint16(lAddr.Port), uint16(rAddr.Port),
-		func(p *packet.Packet) error {
-			return atctrl.Send(p)
-		},
-		packet.MaxPayloadBytes)
+	lp, rp := uint16(c.LocalAddr.Port), uint16(c.RemoteAddr.Port)
+	pf, err := factory.New(lp, rp, c.ToController, packet.MaxPayloadBytes)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not initialize new packetfactory")
 	}
 
-	s := &Socket{
-		lAddr:       lAddr,
-		rAddr:       rAddr,
-		application: appConn,
-		atc:         atctrl,
-		pf:          pf,
+	return &Socket{
+		lAddr:       c.LocalAddr,
+		rAddr:       c.RemoteAddr,
+		application: c.ToApplicationLayer,
+		outbound:    pf,
 		inbound:     make(chan *packet.Packet),
+	}, nil
+}
+
+// Start kicks-off socket processes
+func (s *Socket) Start() error {
+	go s.receive()
+	go s.transmit()
+	for {
+		/* TODO */
 	}
-
-	go s.receiver()
-	go s.sender()
-
-	return s, nil
 }
 
 // ID returns the of unique identifier of the socket
@@ -81,30 +100,34 @@ func (s *Socket) RemoteAddr() net.Addr {
 
 // Close closes a socket
 func (s *Socket) Close() error {
+	close(s.inbound)
 	return s.application.Close()
 }
 
-func (s *Socket) receiver() {
+func (s *Socket) receive() {
 	for {
 		p := <-s.inbound
 
-		s.atc.Ack(p.AckNo)             // acknowledge received packet
 		s.rxBytes += uint32(p.Length)  // keep track of stats
 		s.application.Write(p.Payload) // pass packet to application layer
+
+		// FIXME - no end condition
 	}
 }
 
-func (s *Socket) sender() {
+func (s *Socket) transmit() {
 	buf := make([]byte, 1500)
 	for {
 		n, err := s.application.Read(buf)
 		if err != nil {
-			return
+			return // FIXME
 		}
-		n, err = s.pf.Send(buf[:n])
+		n, err = s.outbound.Send(buf[:n])
 		if err != nil {
-			return
+			return // FIXME
 		}
 		s.txBytes += uint32(n)
+
+		// FIXME - no end condition
 	}
 }

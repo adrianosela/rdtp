@@ -1,6 +1,7 @@
 package service
 
 import (
+	"github.com/adrianosela/rdtp/atc"
 	"github.com/adrianosela/rdtp/ipv4"
 	"github.com/adrianosela/rdtp/packet"
 	"github.com/adrianosela/rdtp/socket"
@@ -10,6 +11,7 @@ import (
 // Service is an abstraction of the rdtp service
 type Service struct {
 	network *ipv4.IPv4
+	atc     *atc.AirTrafficCtrl
 	sckmgr  *socket.Manager
 }
 
@@ -23,6 +25,12 @@ func NewService() (*Service, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "could not initialize socket manager")
 	}
+
+	atc.NewAirTrafficCtrl(func(p *packet.Packet) error {
+		/* TODO */
+		return nil
+	})
+
 	return &Service{
 		network: ip,
 		sckmgr:  mgr,

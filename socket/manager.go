@@ -83,11 +83,13 @@ func (m *Manager) Deliver(p *packet.Packet) error {
 }
 
 func idFromPacket(p *packet.Packet) (string, error) {
-	ipv4, err := p.IPv4Details()
+	dst, err := p.GetDestinationIPv4()
 	if err != nil {
-		return "", errors.Wrap(err, "no ipv4 data in rdtp packet")
+		return "", err
 	}
-	return fmt.Sprintf("%s:%d %s:%d",
-		ipv4.DstIP.String(), p.DstPort,
-		ipv4.SrcIP.String(), p.SrcPort), nil
+	src, err := p.GetSourceIPv4()
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s:%d %s:%d", dst, p.DstPort, src, p.SrcPort), nil
 }

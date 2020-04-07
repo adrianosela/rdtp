@@ -6,8 +6,6 @@ import (
 	"os"
 	"syscall"
 
-	"net"
-
 	"github.com/adrianosela/rdtp"
 	"github.com/adrianosela/rdtp/packet"
 	"github.com/google/gopacket"
@@ -34,12 +32,17 @@ func NewIPv4() (*IPv4, error) {
 }
 
 // Send sends a packet to the destination IP address
-func (ip *IPv4) Send(dstIP string, pck *packet.Packet) error {
-	remoteAddr, err := parseAddr(dstIP)
+func (ip *IPv4) Send(pck *packet.Packet) error {
+	dstIP, err := pck.GetDestinationIPv4()
 	if err != nil {
-		return errors.Wrap(err, "could not parse ip address")
+		return errors.Wrap(err, "could not determine destination IP addresss")
 	}
-	if err := syscall.Sendto(ip.sckfd, pck.Serialize(), 0, remoteAddr); err != nil {
+
+	remote := &syscall.SockaddrInet4{
+		Addr: [4]byte{dstIP[0], dstIP[1], dstIP[2], dstIP[3]},
+	}
+
+	if err := syscall.Sendto(ip.sckfd, pck.Serialize(), 0, remote); err != nil {
 		return errors.Wrap(err, "could not send data to network socket")
 	}
 	return nil
@@ -76,20 +79,12 @@ func (ip *IPv4) ForwardRDTP(fw func(*packet.Packet) error) error {
 			continue
 		}
 
-		rdtpPacket.SetIPv4Details(ipv4)
+		rdtpPacket.SetDestinationIPv4(ipv4.DstIP)
+		rdtpPacket.SetSourceIPv4(ipv4.SrcIP)
+
 		if err = fw(rdtpPacket); err != nil {
 			log.Println(errors.Wrap(err, "could not forward received rdtp packet"))
 			continue
 		}
 	}
-}
-
-func parseAddr(ip string) (*syscall.SockaddrInet4, error) {
-	parsed := net.ParseIP(ip)
-	if parsed == nil {
-		return nil, errors.New("invalid IPv4 address")
-	}
-	return &syscall.SockaddrInet4{
-		Addr: [4]byte{parsed[0], parsed[1], parsed[2], parsed[3]},
-	}, nil
 }

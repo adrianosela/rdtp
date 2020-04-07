@@ -2,8 +2,7 @@ package packet
 
 import (
 	"fmt"
-
-	"github.com/google/gopacket/layers"
+	"net"
 )
 
 const (
@@ -31,18 +30,19 @@ type Packet struct {
 	// reliability
 	SeqNo uint32
 	AckNo uint32
-	
+
 	// control
 	Flags uint8 // {SYN, FIN, ACK, ERR, XXXX, XXXX, XXXX, XXXX}
-	
+
 	// data
 	Payload []byte
 
-	// used exclusively on inbound packets to
-	// communicate important network layer
-	// details. e.g. ip addresses for
-	// identifying receiving socket
-	ipv4 *layers.IPv4
+	// the fields below dont make up the
+	// packet that goes over the wire.
+	// they are used to communicate
+	// network layer metadata
+	srcIP net.IP
+	dstIP net.IP
 }
 
 // NewPacket populates an RDTP packet onto a serializable state representation

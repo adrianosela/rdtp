@@ -2,20 +2,33 @@ package packet
 
 import (
 	"errors"
-
-	"github.com/google/gopacket/layers"
+	"net"
 )
 
-// SetIPv4Details sets IPv4 details on inbound packets
-func (p *Packet) SetIPv4Details(ipv4 *layers.IPv4) {
-	p.ipv4 = ipv4
+// SetDestinationIPv4 sets the destination IPv4 on the packet
+func (p *Packet) SetDestinationIPv4(ip net.IP) {
+	p.dstIP = ip
 }
 
-// IPv4Details returns the IPv4 details set on the packet
-// or an error if no details are set
-func (p *Packet) IPv4Details() (*layers.IPv4, error) {
-	if p.ipv4 == nil {
-		return nil, errors.New("no ipv4 details for packet")
+// SetSourceIPv4 sets the source IPv4 on the packet
+func (p *Packet) SetSourceIPv4(ip net.IP) {
+	p.srcIP = ip
+}
+
+// GetDestinationIPv4 returns the destination IPv4
+// set on the packet or an error if none is set
+func (p *Packet) GetDestinationIPv4() (net.IP, error) {
+	if p.dstIP == nil {
+		return nil, errors.New("no destination IPv4 address set on packet")
 	}
-	return p.ipv4, nil
+	return p.dstIP, nil
+}
+
+// GetSourceIPv4 returns the source IPv4
+// set on the packet or an error if none is set
+func (p *Packet) GetSourceIPv4() (net.IP, error) {
+	if p.srcIP == nil {
+		return nil, errors.New("no source IPv4 address set on packet")
+	}
+	return p.srcIP, nil
 }
