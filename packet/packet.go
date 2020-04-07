@@ -20,12 +20,6 @@ const (
 
 // Packet is an RDTP packet
 type Packet struct {
-	// used exclusively on inbound packets to
-	// communicate important network layer
-	// details. e.g. ip addresses for
-	// identifying recieving socket
-	ipv4 *layers.IPv4
-
 	// connection identifyers
 	SrcPort uint16
 	DstPort uint16
@@ -41,6 +35,16 @@ type Packet struct {
 	Flags uint8 // {SYN, FIN, ACK, ERR, XXXX, XXXX, XXXX, XXXX}
 
 	Payload []byte
+	
+	
+	
+	
+	// used exclusively on inbound packets to
+	// communicate important network layer
+	// details. e.g. ip addresses for
+	// identifying recieving socket
+	ipv4 *layers.IPv4
+
 }
 
 // NewPacket populates an RDTP packet onto a serializable state representation
