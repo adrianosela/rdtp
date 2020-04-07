@@ -1,7 +1,6 @@
 package service
 
 import (
-	"github.com/adrianosela/rdtp/atc"
 	"github.com/adrianosela/rdtp/ipv4"
 	"github.com/adrianosela/rdtp/packet"
 	"github.com/adrianosela/rdtp/socket"
@@ -11,7 +10,6 @@ import (
 // Service is an abstraction of the rdtp service
 type Service struct {
 	network *ipv4.IPv4
-	atc     *atc.AirTrafficCtrl
 	sckmgr  *socket.Manager
 }
 
@@ -26,11 +24,6 @@ func NewService() (*Service, error) {
 		return nil, errors.Wrap(err, "could not initialize socket manager")
 	}
 
-	atc.NewAirTrafficCtrl(func(p *packet.Packet) error {
-		/* TODO */
-		return nil
-	})
-
 	return &Service{
 		network: ip,
 		sckmgr:  mgr,
@@ -39,8 +32,9 @@ func NewService() (*Service, error) {
 
 // Start starts the rdtp service
 func (s *Service) Start() error {
-	// forward all rdtp packets received on the network to their socket
-	go s.network.ForwardRDTP(func(p *packet.Packet) error {
+	// receive all rdtp packets passed on by the network
+	// and forward them to the corresponding socket
+	go s.network.Receive(func(p *packet.Packet) error {
 		if err := s.sckmgr.Deliver(p); err != nil {
 			return errors.Wrap(err, "could not deliver packet to rdtp socket")
 		}
@@ -48,6 +42,6 @@ func (s *Service) Start() error {
 	})
 
 	for {
-		/* TODO */
+		// TODO:
 	}
 }

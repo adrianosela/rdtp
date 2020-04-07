@@ -48,8 +48,10 @@ func (ip *IPv4) Send(pck *packet.Packet) error {
 	return nil
 }
 
-// ForwardRDTP forwards all received IP packets carrying rdtp
-func (ip *IPv4) ForwardRDTP(fw func(*packet.Packet) error) error {
+// Receive forwards all ipv4 packets received which carry rdtp
+// These ipv4 packets are processed until an rdtp packet.Packet
+// is extracted, then the next() function is called with the packet
+func (ip *IPv4) Receive(next func(*packet.Packet) error) error {
 	rdtpFile := os.NewFile(uintptr(ip.sckfd), fmt.Sprintf("fd %d", ip.sckfd))
 	buf := make([]byte, 65535) // maximum IP packet
 	for {
@@ -82,8 +84,8 @@ func (ip *IPv4) ForwardRDTP(fw func(*packet.Packet) error) error {
 		rdtpPacket.SetDestinationIPv4(ipv4.DstIP)
 		rdtpPacket.SetSourceIPv4(ipv4.SrcIP)
 
-		if err = fw(rdtpPacket); err != nil {
-			log.Println(errors.Wrap(err, "could not forward received rdtp packet"))
+		if err = next(rdtpPacket); err != nil {
+			log.Println(errors.Wrap(err, "could not process received rdtp packet"))
 			continue
 		}
 	}
