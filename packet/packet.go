@@ -39,7 +39,7 @@ type Packet struct {
 	// used exclusively on inbound packets to
 	// communicate important network layer
 	// details. e.g. ip addresses for
-	// identifying recieving socket
+	// identifying receiving socket
 	ipv4 *layers.IPv4
 }
 
