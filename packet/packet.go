@@ -31,9 +31,11 @@ type Packet struct {
 	// reliability
 	SeqNo uint32
 	AckNo uint32
-
+	
+	// control
 	Flags uint8 // {SYN, FIN, ACK, ERR, XXXX, XXXX, XXXX, XXXX}
-
+	
+	// data
 	Payload []byte
 
 	// used exclusively on inbound packets to
