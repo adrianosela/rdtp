@@ -11,8 +11,6 @@ import (
 type Service struct {
 	network *ipv4.IPv4
 	sckmgr  *socket.Manager
-
-	inbound chan *packet.Packet
 }
 
 // NewService returns an rdtp service instance
