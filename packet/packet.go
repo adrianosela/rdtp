@@ -20,8 +20,9 @@ const (
 
 // Packet is an RDTP packet
 type Packet struct {
-	// the controller needs to know some network
-	// layer details. e.g. ip addresses for
+	// used exclusively on inbound packets to
+	// communicate important network layer
+	// details. e.g. ip addresses for
 	// identifying recieving socket
 	ipv4 *layers.IPv4
 
