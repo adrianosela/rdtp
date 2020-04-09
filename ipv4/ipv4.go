@@ -33,16 +33,16 @@ func NewIPv4() (*IPv4, error) {
 
 // Send sends a packet to the destination IP address
 func (ip *IPv4) Send(pck *packet.Packet) error {
+	var remote syscall.SockaddrInet4
+
 	dstIP, err := pck.GetDestinationIPv4()
 	if err != nil {
 		return errors.Wrap(err, "could not determine destination IP addresss")
 	}
+	copy(remote.Addr[:], dstIP)
 
-	remote := &syscall.SockaddrInet4{
-		Addr: [4]byte{dstIP[0], dstIP[1], dstIP[2], dstIP[3]},
-	}
-
-	if err := syscall.Sendto(ip.sckfd, pck.Serialize(), 0, remote); err != nil {
+	pck.SetSum()
+	if err := syscall.Sendto(ip.sckfd, pck.Serialize(), 0, &remote); err != nil {
 		return errors.Wrap(err, "could not send data to network socket")
 	}
 	return nil

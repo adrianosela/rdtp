@@ -2,6 +2,7 @@ package socket
 
 import (
 	"fmt"
+	"log"
 	"net"
 
 	"github.com/adrianosela/rdtp"
@@ -62,8 +63,11 @@ func NewSocket(c Config) (*Socket, error) {
 	lp, rp := uint16(c.LocalAddr.Port), uint16(c.RemoteAddr.Port)
 
 	outbound := func(p *packet.Packet) error {
-		p.SetSourceIPv4(net.ParseIP(c.LocalAddr.Host))
-		p.SetDestinationIPv4(net.ParseIP(c.RemoteAddr.Host))
+		local := net.ParseIP(c.LocalAddr.Host)
+		rmte := net.ParseIP(c.RemoteAddr.Host)
+		// TODO: error check the IPs somewhere...
+		p.SetSourceIPv4(local)
+		p.SetDestinationIPv4(rmte)
 		return c.ToController(p)
 	}
 
@@ -127,16 +131,17 @@ func (s *Socket) receive() {
 func (s *Socket) transmit() {
 	buf := make([]byte, 1500)
 	for {
+
 		n, err := s.application.Read(buf)
 		if err != nil {
 			return // FIXME
 		}
+
 		n, err = s.outbound.Send(buf[:n])
 		if err != nil {
 			return // FIXME
 		}
 		s.txBytes += uint32(n)
-
 		// FIXME - no end condition
 	}
 }
