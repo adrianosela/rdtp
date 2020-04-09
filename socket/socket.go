@@ -2,7 +2,6 @@ package socket
 
 import (
 	"fmt"
-	"log"
 	"net"
 
 	"github.com/adrianosela/rdtp"
@@ -47,10 +46,10 @@ type Config struct {
 
 // NewSocket returns a newly allocated socket
 func NewSocket(c Config) (*Socket, error) {
-	if c.LocalAddr == nil {
-		return nil, errors.New("local address cannot be nil")
+	if c.LocalAddr == nil || net.ParseIP(c.LocalAddr.Host) == nil {
+		return nil, errors.New("invalid local address")
 	}
-	if c.RemoteAddr == nil {
+	if c.RemoteAddr == nil || net.ParseIP(c.LocalAddr.Host) == nil {
 		return nil, errors.New("remote address cannot be nil")
 	}
 	if c.ToApplicationLayer == nil {
@@ -60,18 +59,16 @@ func NewSocket(c Config) (*Socket, error) {
 		return nil, errors.New("connection to controller cannot be nil")
 	}
 
+	la, ra := net.ParseIP(c.LocalAddr.Host), net.ParseIP(c.RemoteAddr.Host)
 	lp, rp := uint16(c.LocalAddr.Port), uint16(c.RemoteAddr.Port)
 
-	outbound := func(p *packet.Packet) error {
-		local := net.ParseIP(c.LocalAddr.Host)
-		rmte := net.ParseIP(c.RemoteAddr.Host)
-		// TODO: error check the IPs somewhere...
-		p.SetSourceIPv4(local)
-		p.SetDestinationIPv4(rmte)
+	outFunc := func(p *packet.Packet) error {
+		p.SetSourceIPv4(la)
+		p.SetDestinationIPv4(ra)
 		return c.ToController(p)
 	}
 
-	pf, err := factory.New(lp, rp, outbound, packet.MaxPayloadBytes)
+	outbound, err := factory.New(lp, rp, outFunc, packet.MaxPayloadBytes)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not initialize new packetfactory")
 	}
@@ -80,7 +77,7 @@ func NewSocket(c Config) (*Socket, error) {
 		lAddr:       c.LocalAddr,
 		rAddr:       c.RemoteAddr,
 		application: c.ToApplicationLayer,
-		outbound:    pf,
+		outbound:    outbound,
 		inbound:     make(chan *packet.Packet),
 	}, nil
 }
@@ -120,11 +117,8 @@ func (s *Socket) Close() {
 func (s *Socket) receive() {
 	for {
 		p := <-s.inbound
-
 		s.rxBytes += uint32(p.Length)  // keep track of stats
 		s.application.Write(p.Payload) // pass packet to application layer
-
-		// FIXME - no end condition
 	}
 }
 
