@@ -78,8 +78,11 @@ func NewSocket(c Config) (*Socket, error) {
 func (s *Socket) Start() error {
 	go s.receive()
 	go s.transmit()
+
 	for {
-		/* TODO */
+		/* TODO:
+		handle all disconnections here
+		*/
 	}
 }
 
@@ -99,9 +102,8 @@ func (s *Socket) RemoteAddr() net.Addr {
 }
 
 // Close closes a socket
-func (s *Socket) Close() error {
+func (s *Socket) Close() {
 	close(s.inbound)
-	return s.application.Close()
 }
 
 func (s *Socket) receive() {
