@@ -1,4 +1,4 @@
-# /packet - rdtp segment header structure
+# packet - rdtp segment header structure
 
 [![Documentation](https://godoc.org/github.com/adrianosela/rdtp/packet?status.svg)](https://godoc.org/github.com/adrianosela/rdtp/packet)
 [![license](https://img.shields.io/github/license/adrianosela/rdtp.svg)](https://github.com/adrianosela/rdtp/blob/master/LICENSE)
