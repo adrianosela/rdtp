@@ -60,7 +60,14 @@ func NewSocket(c Config) (*Socket, error) {
 	}
 
 	lp, rp := uint16(c.LocalAddr.Port), uint16(c.RemoteAddr.Port)
-	pf, err := factory.New(lp, rp, c.ToController, packet.MaxPayloadBytes)
+
+	outbound := func(p *packet.Packet) error {
+		p.SetSourceIPv4(net.ParseIP(c.LocalAddr.Host))
+		p.SetDestinationIPv4(net.ParseIP(c.RemoteAddr.Host))
+		return c.ToController(p)
+	}
+
+	pf, err := factory.New(lp, rp, outbound, packet.MaxPayloadBytes)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not initialize new packetfactory")
 	}
