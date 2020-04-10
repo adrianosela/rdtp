@@ -51,7 +51,6 @@ func (s *Service) Start() error {
 	if err != nil {
 		return errors.Wrap(err, "could not start system's rdtp client listener")
 	}
-
 	for {
 		conn, err := clients.Accept()
 		if err != nil {
@@ -69,8 +68,8 @@ func (s *Service) handleClient(c net.Conn) error {
 	// FIXME: allocate port here
 
 	sck, err := socket.NewSocket(socket.Config{
-		LocalAddr:          &rdtp.Addr{Host: "127.0.0.1", Port: rdtp.Port(10)}, // FIXME
-		RemoteAddr:         &rdtp.Addr{Host: "8.8.8.8", Port: rdtp.Port(10)},   // FIXME
+		LocalAddr:          &rdtp.Addr{Host: "127.0.0.1", Port: uint16(10)}, // FIXME
+		RemoteAddr:         &rdtp.Addr{Host: "8.8.8.8", Port: uint16(10)},   // FIXME
 		ToApplicationLayer: c,
 		ToController:       s.netLayer.Send, /* FIXME */
 	})
@@ -86,6 +85,7 @@ func (s *Service) handleClient(c net.Conn) error {
 	if err = sck.Start(); err != nil {
 		return errors.Wrap(err, "socket failure")
 	}
+
 	return nil
 }
 

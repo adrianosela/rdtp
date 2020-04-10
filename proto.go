@@ -7,10 +7,10 @@ const (
 	IPProtoRDTP = 0x9D
 
 	// DiscoveryPort is the port that receives new RDTP connections
-	DiscoveryPort = Port(0)
+	DiscoveryPort = uint16(0)
 
 	// MaxPort is the highest possible RDTP port number
-	MaxPort = Port(65535)
+	MaxPort = uint16(65535)
 
 	// DefaultRDTPServiceAddr is the default rdtp service socket
 	DefaultRDTPServiceAddr = "/var/run/rdtp.sock"
