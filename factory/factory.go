@@ -61,6 +61,7 @@ func (pf *PacketFactory) packetizeAndForwardChunk(chunk []byte) error {
 	if err != nil {
 		return errors.Wrap(err, "error packetizing message")
 	}
+	pck.SetSum() // set checksum here
 	if err = pf.fwFunc(pck); err != nil {
 		return errors.Wrap(err, "error forwarding packet")
 	}

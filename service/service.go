@@ -3,6 +3,9 @@ package service
 import (
 	"log"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/adrianosela/rdtp"
 	"github.com/adrianosela/rdtp/ipv4"
@@ -13,7 +16,6 @@ import (
 
 // Service is an abstraction of the rdtp service
 type Service struct {
-	appLayer net.Listener
 	sckmgr   *socket.Manager
 	netLayer *ipv4.IPv4
 }
@@ -28,14 +30,7 @@ func NewService() (*Service, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "could not initialize socket manager")
 	}
-
-	applications, err := net.Listen("unix", rdtp.DefaultRDTPServiceAddr)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not listen on default RTDP service address")
-	}
-
 	return &Service{
-		appLayer: applications,
 		sckmgr:   socketManager,
 		netLayer: network,
 	}, nil
@@ -52,17 +47,22 @@ func (s *Service) Start() error {
 		return nil
 	})
 
+	clients, err := safeUnixListener(rdtp.DefaultRDTPServiceAddr)
+	if err != nil {
+		return errors.Wrap(err, "could not start system's rdtp client listener")
+	}
+
 	for {
-		conn, err := s.appLayer.Accept()
+		conn, err := clients.Accept()
 		if err != nil {
 			log.Println(errors.Wrap(err, "could not accept rdtp client connection"))
 			continue
 		}
-		go s.handleUser(conn)
+		go s.handleClient(conn)
 	}
 }
 
-func (s *Service) handleUser(c net.Conn) error {
+func (s *Service) handleClient(c net.Conn) error {
 	defer c.Close()
 
 	// FIXME: read config here
@@ -87,4 +87,24 @@ func (s *Service) handleUser(c net.Conn) error {
 		return errors.Wrap(err, "socket failure")
 	}
 	return nil
+}
+
+func safeUnixListener(unixAddr string) (net.Listener, error) {
+	l, err := net.Listen("unix", unixAddr)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not listen on default RTDP service address")
+	}
+
+	// Unix sockets must be unlink()ed before being reused again.
+	// Handle common process-killing signals so we can gracefully shut down:
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, os.Kill, syscall.SIGTERM)
+	go func(c chan os.Signal) {
+		sig := <-c
+		log.Printf("[rdtp] signal %s: shutting down.", sig)
+		l.Close()
+		os.Exit(0)
+	}(sigChan)
+
+	return l, nil
 }

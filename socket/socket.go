@@ -135,7 +135,7 @@ func (s *Socket) transmit() {
 		if err != nil {
 			return // FIXME
 		}
+
 		s.txBytes += uint32(n)
-		// FIXME - no end condition
 	}
 }
