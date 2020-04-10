@@ -17,6 +17,8 @@ func main() {
 	}
 	defer c.Close()
 
+	c.Write([]byte("8.8.8.8"))
+
 	fmt.Println("Anything written here will be sent to 8.8.8.8 over rdtp:")
 	reader := bufio.NewReader(os.Stdin)
 	for {
