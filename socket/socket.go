@@ -78,7 +78,7 @@ func NewSocket(c Config) (*Socket, error) {
 		rAddr:       c.RemoteAddr,
 		application: c.ToApplicationLayer,
 		outbound:    outbound,
-		inbound:     make(chan *packet.Packet),
+		inbound:     make(chan *packet.Packet, 100),
 	}, nil
 }
 
