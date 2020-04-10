@@ -12,5 +12,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Fatal(svc.Start())
+	err = svc.Start()
+	if err != nil {
+		log.Fatal(err)
+	}
 }

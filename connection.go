@@ -2,7 +2,8 @@ package rdtp
 
 import (
 	"net"
-	"time"
+
+	"github.com/pkg/errors"
 )
 
 // Conn is a logical communication channel
@@ -10,84 +11,40 @@ import (
 // Implements the net.Conn interface
 // https://golang.org/pkg/net/#Conn
 type Conn struct {
-	lAddr *Addr
-	rAddr *Addr
+	rdtp net.Conn
+}
+
+// Dial returns a connection to a remote address
+// where the remote address has a format:
+// ${host}:${port}
+func Dial(address string) (*Conn, error) {
+	c, err := net.Dial("unix", DefaultRDTPServiceAddr)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not connect to rdtp service")
+	}
+	// FIXME, makes this json
+	if _, err := c.Write([]byte(address)); err != nil {
+		return nil, errors.Wrap(err, "could not send address to rdtp service")
+	}
+	return &Conn{rdtp: c}, nil
 }
 
 // Read reads data from the connection.
 // Read can be made to time out and return an Error with Timeout() == true
 // after a fixed time limit; see SetDeadline and SetReadDeadline.
 func (c *Conn) Read(b []byte) (n int, err error) {
-	// TODO
-	return 0, nil
+	return c.rdtp.Read(b)
 }
 
 // Write writes data to the connection.
 // Write can be made to time out and return an Error with Timeout() == true
 // after a fixed time limit; see SetDeadline and SetWriteDeadline.
 func (c *Conn) Write(b []byte) (n int, err error) {
-	// TODO
-	return 0, nil
+	return c.rdtp.Write(b)
 }
 
 // Close closes the connection.
 // Any blocked Read or Write operations will be unblocked and return errors.
 func (c *Conn) Close() error {
-	// TODO
-	return nil
-}
-
-// LocalAddr returns the local network address.
-func (c *Conn) LocalAddr() net.Addr {
-	return c.lAddr
-}
-
-// RemoteAddr returns the remote network address.
-func (c *Conn) RemoteAddr() net.Addr {
-	return c.rAddr
-}
-
-// SetDeadline sets the read and write deadlines associated
-// with the connection. It is equivalent to calling both
-// SetReadDeadline and SetWriteDeadline.
-//
-// A deadline is an absolute time after which I/O operations
-// fail with a timeout (see type Error) instead of
-// blocking. The deadline applies to all future and pending
-// I/O, not just the immediately following call to Read or
-// Write. After a deadline has been exceeded, the connection
-// can be refreshed by setting a deadline in the future.
-//
-// An idle timeout can be implemented by repeatedly extending
-// the deadline after successful Read or Write calls.
-//
-// A zero value for t means I/O operations will not time out.
-//
-// Note that if a TCP connection has keep-alive turned on,
-// which is the default unless overridden by Dialer.KeepAlive
-// or ListenConfig.KeepAlive, then a keep-alive failure may
-// also return a timeout error. On Unix systems a keep-alive
-// failure on I/O can be detected using
-// errors.Is(err, syscall.ETIMEDOUT).
-func (c *Conn) SetDeadline(t time.Time) error {
-	// TODO
-	return nil
-}
-
-// SetReadDeadline sets the deadline for future Read calls
-// and any currently-blocked Read call.
-// A zero value for t means Read will not time out.
-func (c *Conn) SetReadDeadline(t time.Time) error {
-	// TODO
-	return nil
-}
-
-// SetWriteDeadline sets the deadline for future Write calls
-// and any currently-blocked Write call.
-// Even if write times out, it may return n > 0, indicating that
-// some of the data was successfully written.
-// A zero value for t means Write will not time out.
-func (c *Conn) SetWriteDeadline(t time.Time) error {
-	// TODO
-	return nil
+	return c.Close()
 }

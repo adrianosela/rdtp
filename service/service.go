@@ -5,6 +5,8 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strconv"
+	"strings"
 	"syscall"
 
 	"github.com/adrianosela/rdtp"
@@ -16,6 +18,8 @@ import (
 
 // Service is an abstraction of the rdtp service
 type Service struct {
+	favIP net.IP
+
 	sckmgr   *socket.Manager
 	netLayer *ipv4.IPv4
 }
@@ -63,13 +67,21 @@ func (s *Service) Start() error {
 
 func (s *Service) handleClient(c net.Conn) error {
 	defer c.Close()
+	log.Println("[rdtp] new rdtp client")
 
-	// FIXME: read config here
-	// FIXME: allocate port here
+	// FIXME: worry about listeners later
+
+	rhost, rport, err := extractAddress(c)
+	if err != nil {
+		return errors.Wrap(err, "could not extract destination")
+	}
+
+	// FIXME: allocate output port here
+	lhost, lport := getOutboundIP(), uint16(1010)
 
 	sck, err := socket.NewSocket(socket.Config{
-		LocalAddr:          &rdtp.Addr{Host: "127.0.0.1", Port: uint16(10)}, // FIXME
-		RemoteAddr:         &rdtp.Addr{Host: "8.8.8.8", Port: uint16(10)},   // FIXME
+		LocalAddr:          &rdtp.Addr{Host: lhost, Port: lport},
+		RemoteAddr:         &rdtp.Addr{Host: rhost, Port: rport},
 		ToApplicationLayer: c,
 		ToController:       s.netLayer.Send, /* FIXME */
 	})
@@ -107,4 +119,57 @@ func safeUnixListener(unixAddr string) (net.Listener, error) {
 	}(sigChan)
 
 	return l, nil
+}
+
+// extractAddress extracts the IPv4 address and rdtp
+// port of the destination address
+func extractAddress(c net.Conn) (string, uint16, error) {
+	buf := make([]byte, 15) // maxIP = 255.255.255.255 (15 chars)
+
+	n, err := c.Read(buf)
+	if err != nil {
+		return "", uint16(0), errors.Wrap(err, "could not read from conn")
+	}
+
+	address := string(buf[:n])
+
+	var host string
+	var port uint16
+
+	if !strings.Contains(address, ":") {
+		host = address
+		port = rdtp.DiscoveryPort
+	} else {
+		hostStr, portStr, err := net.SplitHostPort(address)
+		if err != nil {
+			return "", uint16(0), errors.Wrap(err, "could not split host from port")
+		}
+		host = hostStr
+
+		if portStr == "" {
+			port = 0
+		} else {
+			p64, err := strconv.ParseUint(portStr, 10, 16)
+			if err != nil {
+				return "", uint16(0), errors.Wrap(err, "could parse port number")
+			}
+			port = uint16(p64)
+		}
+	}
+
+	// FIXME: DNS lookup if not IP
+	return host, port, nil
+}
+
+// get preferred outbound ip of this machine
+func getOutboundIP() string {
+	conn, err := net.Dial("udp", "8.8.8.8:80")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+
+	return localAddr.IP.String()
 }
