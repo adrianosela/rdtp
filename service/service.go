@@ -67,7 +67,6 @@ func (s *Service) Start() error {
 
 func (s *Service) handleClient(c net.Conn) error {
 	defer c.Close()
-	log.Println("[rdtp] new rdtp client")
 
 	// FIXME: worry about listeners later
 
@@ -77,7 +76,7 @@ func (s *Service) handleClient(c net.Conn) error {
 	}
 
 	// FIXME: allocate output port here
-	lhost, lport := getOutboundIP(), uint16(1010)
+	lhost, lport := getOutboundIP(), uint16(0) // rand.Intn(int(rdtp.MaxPort)-1)+1
 
 	sck, err := socket.NewSocket(socket.Config{
 		LocalAddr:          &rdtp.Addr{Host: lhost, Port: lport},
@@ -92,7 +91,12 @@ func (s *Service) handleClient(c net.Conn) error {
 	if err = s.sckmgr.Put(sck); err != nil {
 		return errors.Wrap(err, "could not attach socket to socket manager")
 	}
-	defer s.sckmgr.Evict(sck.ID())
+	log.Printf("%s [attached]", sck.ID())
+
+	defer func() {
+		s.sckmgr.Evict(sck.ID())
+		log.Printf("%s [evicted]", sck.ID())
+	}()
 
 	if err = sck.Start(); err != nil {
 		return errors.Wrap(err, "socket failure")

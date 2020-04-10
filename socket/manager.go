@@ -75,7 +75,7 @@ func (m *Manager) Deliver(p *packet.Packet) error {
 	m.RUnlock()
 
 	if !ok {
-		errors.New("socket address not active")
+		return errors.New("socket address not active")
 	}
 
 	s.inbound <- p
@@ -83,10 +83,12 @@ func (m *Manager) Deliver(p *packet.Packet) error {
 }
 
 func idFromPacket(p *packet.Packet) (string, error) {
+	// destination = local for inbound, remote for outbound pcks
 	dst, err := p.GetDestinationIPv4()
 	if err != nil {
 		return "", err
 	}
+	// source = local for outbound, remote for inbound pcks
 	src, err := p.GetSourceIPv4()
 	if err != nil {
 		return "", err

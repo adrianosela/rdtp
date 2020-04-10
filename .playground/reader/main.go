@@ -1,16 +1,14 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/adrianosela/rdtp"
 )
 
 func main() {
-	addr := "8.8.8.8:27"
+	addr := "192.168.1.77"
 
 	c, err := rdtp.Dial(addr)
 	if err != nil {
@@ -18,11 +16,13 @@ func main() {
 	}
 
 	fmt.Printf("Anything written here will be sent to %s over rdtp:\n", addr)
-	reader := bufio.NewReader(os.Stdin)
+	buf := make([]byte, 15000)
 	for {
-		text, _ := reader.ReadString('\n')
-		if _, err := c.Write([]byte(text)[:len(text)-1]); err != nil {
-			log.Fatal(err)
+		n, err := c.Read(buf)
+		if err != nil {
+			log.Println(err)
 		}
+
+		fmt.Println(string(buf[:n]))
 	}
 }
