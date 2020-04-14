@@ -10,9 +10,9 @@ Specification of a reliable transport layer protocol to be used over IP networks
 
 ## To-Dos:
 * Reliability
-  * Sequence numbers in header
-  * Ack numbers in header
-  * Implement cumulative acknowledgements
+  * Polish socket dialer
+  * Implement socket listener
+  * Implement selective acknowledgements
 * Flow Control
   * Receiver window in header
 
