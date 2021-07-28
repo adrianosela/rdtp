@@ -1,6 +1,7 @@
 package atc
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -38,7 +39,11 @@ func (atc *AirTrafficCtrl) Send(pck *packet.Packet) error {
 
 	atc.inFlight[pck.SeqNo] = pck
 
-	return atc.fwFunc(pck)
+	if err := atc.fwFunc(pck); err != nil {
+		return fmt.Errorf("could not send packet: %s", err)
+	}
+
+	return nil
 }
 
 // Ack acknowledges a sent packet
@@ -47,12 +52,4 @@ func (atc *AirTrafficCtrl) Ack(num uint32) {
 	defer atc.Unlock()
 
 	delete(atc.inFlight, num)
-}
-
-// SetAckWait sets the Ack wait timer time on the controller
-func (atc *AirTrafficCtrl) SetAckWait(t time.Duration) {
-	atc.Lock()
-	defer atc.Unlock()
-
-	atc.ackWait = t
 }
