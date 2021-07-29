@@ -38,20 +38,14 @@ func Dial(address string) (*Conn, error) {
 		return nil, errors.Wrap(err, "could not send address to rdtp service")
 	}
 
-	// first message back will be the local rdtp address (e.g. ${host}:${port})
-	buf := make([]byte, 21) // at most 21 characters for address
-	n, err := svc.Read(buf)
+	verifiedLocalAddr, err := waitForServiceMessageOK(svc)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not send address to rdtp service")
-	}
-	laddr, err := fromString(string(buf[:n]))
-	if err != nil {
-		return nil, errors.Wrap(err, "invalid local rdtp address")
+		return nil, errors.Wrap(err, "could not receive OK message from service")
 	}
 
 	return &Conn{
 		svc:   svc,
-		laddr: laddr,
+		laddr: verifiedLocalAddr,
 		raddr: raddr,
 	}, nil
 }

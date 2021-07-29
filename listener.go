@@ -1,6 +1,8 @@
 package rdtp
 
 import (
+	"encoding/json"
+	"fmt"
 	"io"
 	"net"
 
@@ -37,8 +39,13 @@ func Listen(address string) (net.Listener, error) {
 		return nil, errors.Wrap(err, "could not send listen request to rdtp service")
 	}
 
+	verifiedLocalAddr, err := waitForServiceMessageOK(svc)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not receive OK message from service")
+	}
+
 	l := &Listener{
-		laddr: laddr,
+		laddr: verifiedLocalAddr,
 		svc:   svc,
 	}
 
@@ -75,8 +82,13 @@ func (l *Listener) Accept() (net.Conn, error) {
 		return nil, errors.Wrap(err, "could not send accept request to rdtp service")
 	}
 
+	verifiedLocalAddr, err := waitForServiceMessageOK(svc)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not receive OK message from service")
+	}
+
 	return &Conn{
-		laddr: l.laddr,
+		laddr: verifiedLocalAddr,
 		raddr: raddr,
 		svc:   svc,
 	}, nil
@@ -90,4 +102,27 @@ func (l *Listener) Close() error {
 // Addr returns the listener's network address.
 func (l *Listener) Addr() net.Addr {
 	return l.laddr
+}
+
+func waitForServiceMessageOK(c net.Conn) (*Addr, error) {
+	buf := make([]byte, 1024)
+	n, err := c.Read(buf)
+	if err != nil {
+		return nil, errors.Wrap(err, "error reading rdtp service message")
+	}
+
+	var msg ServiceMessage
+	if err := json.Unmarshal(buf[:n], &msg); err != nil {
+		return nil, errors.Wrap(err, "invalid request json")
+	}
+
+	if msg.Type == ServiceMessageTypeError {
+		return nil, fmt.Errorf("Error service message: %s", msg.Error)
+	}
+
+	if msg.Type != ServiceMessageTypeOK {
+		return nil, fmt.Errorf("Not OK service message type %s", msg.Type)
+	}
+
+	return &msg.LocalAddr, nil
 }
