@@ -28,7 +28,7 @@ func Listen(address string) (net.Listener, error) {
 		return nil, errors.Wrap(err, "address is not a valid rdtp address")
 	}
 
-	req, err := NewRequest(RequestTypeListen, laddr, nil)
+	req, err := NewClientMessage(ClientMessageTypeListen, laddr, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create listen request for rdtp service")
 	}
@@ -66,7 +66,7 @@ func (l *Listener) Accept() (net.Conn, error) {
 		return nil, errors.Wrap(err, "could not connect to rdtp service")
 	}
 
-	req, err := NewRequest(RequestTypeAccept, l.laddr, raddr)
+	req, err := NewClientMessage(ClientMessageTypeAccept, l.laddr, raddr)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create accept request for rdtp service")
 	}

@@ -28,7 +28,7 @@ func Dial(address string) (*Conn, error) {
 		return nil, errors.Wrap(err, "invalid remote rdtp address")
 	}
 
-	req, err := NewRequest(RequestTypeDial, nil, raddr)
+	req, err := NewClientMessage(ClientMessageTypeDial, nil, raddr)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create rdtp dial request")
 	}

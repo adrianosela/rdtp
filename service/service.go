@@ -45,15 +45,6 @@ func (s *Service) Start() error {
 	// receive all rdtp packets passed on by the network
 	// and forward them to the corresponding socket
 	go s.netLayer.Receive(func(p *packet.Packet) error {
-
-		// if SYN, dont care about contents of packet,
-		if p.IsSYN() {
-			if err := s.sckmgr.NotifyListener(p); err != nil {
-				return errors.Wrap(err, "could not notify listener")
-			}
-			return nil
-		}
-
 		if err := s.sckmgr.Deliver(p); err != nil {
 			return errors.Wrap(err, "could not deliver packet to rdtp socket")
 		}
@@ -81,19 +72,19 @@ func (s *Service) handleClient(c net.Conn) error {
 		return errors.Wrap(err, "error reading rdtp request")
 	}
 
-	var req rdtp.Request
+	var req rdtp.ClientMessage
 	if err := json.Unmarshal(buf[:n], &req); err != nil {
 		return errors.Wrap(err, "invalid request json")
 	}
 
-	return s.handleRequest(c, req)
+	return s.handleClientMessage(c, req)
 }
 
-func (s *Service) handleRequest(c net.Conn, r rdtp.Request) error {
+func (s *Service) handleClientMessage(c net.Conn, r rdtp.ClientMessage) error {
 	lhost := getOutboundIP()
 
 	switch *r.Type {
-	case rdtp.RequestTypeAccept:
+	case rdtp.ClientMessageTypeAccept:
 		defer c.Close()
 		sck, err := socket.NewSocket(socket.Config{
 			LocalAddr:          r.LocalAddr,
@@ -119,7 +110,7 @@ func (s *Service) handleRequest(c net.Conn, r rdtp.Request) error {
 			return errors.Wrap(err, "socket failure")
 		}
 		return nil
-	case rdtp.RequestTypeDial:
+	case rdtp.ClientMessageTypeDial:
 		defer c.Close()
 		lport := uint16(rand.Intn(int(rdtp.MaxPort)-1) + 1)
 		sck, err := socket.NewSocket(socket.Config{
@@ -166,8 +157,12 @@ func (s *Service) handleRequest(c net.Conn, r rdtp.Request) error {
 			return errors.Wrap(err, "socket failure")
 		}
 		return nil
-	case rdtp.RequestTypeListen:
-		return s.sckmgr.PutListener(r.LocalAddr.Port, socket.NewListener(c))
+	case rdtp.ClientMessageTypeListen:
+		if err := s.sckmgr.PutListener(socket.NewListener(r.LocalAddr.Port, c)); err != nil {
+
+			return errors.Wrap(err, fmt.Sprintf("could not attach listener to port %d", r.LocalAddr.Port))
+		}
+		return nil
 	default:
 		return errors.New("bad request type")
 	}
@@ -192,46 +187,6 @@ func safeUnixListener(unixAddr string) (net.Listener, error) {
 
 	return l, nil
 }
-
-// // extractAddress extracts the IPv4 address and rdtp
-// // port of the destination address
-// func extractAddress(c net.Conn) (string, uint16, error) {
-// 	buf := make([]byte, 15) // maxIP = 255.255.255.255 (15 chars)
-//
-// 	n, err := c.Read(buf)
-// 	if err != nil {
-// 		return "", uint16(0), errors.Wrap(err, "could not read from conn")
-// 	}
-//
-// 	address := string(buf[:n])
-//
-// 	var host string
-// 	var port uint16
-//
-// 	if !strings.Contains(address, ":") {
-// 		host = address
-// 		port = rdtp.DiscoveryPort
-// 	} else {
-// 		hostStr, portStr, err := net.SplitHostPort(address)
-// 		if err != nil {
-// 			return "", uint16(0), errors.Wrap(err, "could not split host from port")
-// 		}
-// 		host = hostStr
-//
-// 		if portStr == "" {
-// 			port = 0
-// 		} else {
-// 			p64, err := strconv.ParseUint(portStr, 10, 16)
-// 			if err != nil {
-// 				return "", uint16(0), errors.Wrap(err, "could parse port number")
-// 			}
-// 			port = uint16(p64)
-// 		}
-// 	}
-//
-// 	// FIXME: DNS lookup if not IP
-// 	return host, port, nil
-// }
 
 // get preferred outbound ip of this machine
 func getOutboundIP() string {

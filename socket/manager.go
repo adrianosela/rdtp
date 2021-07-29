@@ -70,7 +70,15 @@ func (m *Manager) Evict(id string) error {
 
 // Deliver delivers an inbound rdtp packet
 func (m *Manager) Deliver(p *packet.Packet) error {
-	id, err := idFromPacket(p)
+	// if SYN, dont care about contents of packet,
+	if p.IsSYN() {
+		if err := m.notifyListener(p); err != nil {
+			return errors.Wrap(err, "could not notify listener")
+		}
+		return nil
+	}
+
+	id, err := socketIdFromPacket(p)
 	if err != nil {
 		return errors.Wrap(err, "could not build socket address from packet data")
 	}
@@ -88,17 +96,17 @@ func (m *Manager) Deliver(p *packet.Packet) error {
 }
 
 // PutListener attaches a listener to a port
-func (m *Manager) PutListener(port uint16, l *Listener) error {
+func (m *Manager) PutListener(l *Listener) error {
 	m.RLock()
-	_, ok := m.listeners[port]
+	_, ok := m.listeners[l.port]
 	m.RUnlock()
 	if ok {
-		return fmt.Errorf("port %d is in use", port)
+		return fmt.Errorf("port %d is in use", l.port)
 	}
 
 	m.Lock()
 	defer m.Unlock()
-	m.listeners[port] = l
+	m.listeners[l.port] = l
 
 	return nil
 }
@@ -109,15 +117,15 @@ func (m *Manager) EvictListener(port uint16) error {
 	defer m.Unlock()
 
 	if l, ok := m.listeners[port]; ok {
-		l.application.Close()
+		l.notifyTo.Close()
 		delete(m.listeners, port)
 	}
 
 	return nil
 }
 
-// NotifyListener notifies a listener of a SYN packet
-func (m *Manager) NotifyListener(p *packet.Packet) error {
+// notifyListener notifies a listener of a SYN packet
+func (m *Manager) notifyListener(p *packet.Packet) error {
 	m.RLock()
 	l, ok := m.listeners[p.DstPort]
 	m.RUnlock()
@@ -130,14 +138,14 @@ func (m *Manager) NotifyListener(p *packet.Packet) error {
 		return errors.Wrap(err, "could not get destination address:port from packet")
 	}
 
-	if _, err := l.application.Write([]byte(fmt.Sprintf("%s:%d", src, p.SrcPort))); err != nil {
-		return errors.Wrap(err, "could not write packet address to application")
+	if _, err := l.notifyTo.Write([]byte(fmt.Sprintf("%s:%d", src, p.SrcPort))); err != nil {
+		return errors.Wrap(err, "could not write notification (packet address) to application")
 	}
 
 	return nil
 }
 
-func idFromPacket(p *packet.Packet) (string, error) {
+func socketIdFromPacket(p *packet.Packet) (string, error) {
 	// destination = local for inbound, remote for outbound pcks
 	dst, err := p.GetDestinationIPv4()
 	if err != nil {
