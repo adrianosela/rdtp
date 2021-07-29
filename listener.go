@@ -51,7 +51,7 @@ func (l *Listener) Accept() (net.Conn, error) {
 	n, err := l.svc.Read(buf)
 	if err != nil {
 		if err == io.EOF {
-			// TODO: handle conn closed by rdtp service
+			return nil, errors.New("Listener closed by rdtp service")
 		}
 		return nil, errors.Wrap(err, "could not read remote address notification")
 	}

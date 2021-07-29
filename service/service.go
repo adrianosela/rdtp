@@ -86,13 +86,13 @@ func (s *Service) handleClient(c net.Conn) error {
 		return errors.Wrap(err, "invalid request json")
 	}
 
-	return s.handleRequest(c, &req)
+	return s.handleRequest(c, req)
 }
 
-func (s *Service) handleRequest(c net.Conn, r *rdtp.Request) error {
+func (s *Service) handleRequest(c net.Conn, r rdtp.Request) error {
 	lhost := getOutboundIP()
 
-	switch r.Type {
+	switch *r.Type {
 	case rdtp.RequestTypeAccept:
 		defer c.Close()
 		sck, err := socket.NewSocket(socket.Config{
@@ -103,9 +103,6 @@ func (s *Service) handleRequest(c net.Conn, r *rdtp.Request) error {
 		})
 		if err != nil {
 			return errors.Wrap(err, "could not get socket for user")
-		}
-		if _, err = c.Write([]byte(fmt.Sprintf("%s:%d", r.LocalAddr.Host, r.LocalAddr.Port))); err != nil {
-			return errors.Wrap(err, "could not reply with local address")
 		}
 
 		if err = s.sckmgr.Put(sck); err != nil {

@@ -16,15 +16,15 @@ func main() {
 		log.Fatal(err)
 	}
 	defer l.Close()
-	log.Printf("Listening for new connections on rdtp port %s\n", addr)
+	log.Printf("Listening for new connections on rdtp address %s\n", addr)
 
 	for {
 		conn, err := l.Accept()
 		if err != nil {
-			log.Printf("Could not accept connection: %s\n", err)
+			log.Println(err)
 			break
 		}
-		log.Println("Accepted new connection")
+		log.Printf("Accepted new connection from %s\n", conn.RemoteAddr())
 
 		go func(c net.Conn) {
 			for {
@@ -36,7 +36,7 @@ func main() {
 					}
 					log.Printf("ERROR: %s\n", err)
 				}
-				log.Println(string(buf[:n]))
+				log.Printf("[%s] %s", c.RemoteAddr(), string(buf[:n]))
 			}
 		}(conn)
 	}

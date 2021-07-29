@@ -3,6 +3,9 @@ package socket
 import (
 	"fmt"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/adrianosela/rdtp"
 	"github.com/adrianosela/rdtp/factory"
@@ -84,13 +87,22 @@ func NewSocket(c Config) (*Socket, error) {
 
 // Start kicks-off socket processes
 func (s *Socket) Start() error {
-	go s.receive()
-	go s.transmit()
+	rxdone := make(chan bool, 1)
+	txdone := make(chan bool, 1)
 
+	go s.receive(rxdone)
+	go s.transmit(txdone)
+
+	// TODO: figure out how to handle disconnections
+	// e.g. ensure if any conn along the way breaks,
+	// close all goroutines
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	for {
-		/* TODO:
-		handle all disconnections here
-		*/
+		<-sigs // blocks on signal
+		rxdone <- true
+		txdone <- true
 	}
 }
 
@@ -114,28 +126,36 @@ func (s *Socket) Close() {
 	close(s.inbound)
 }
 
-func (s *Socket) receive() {
+func (s *Socket) receive(done chan bool) {
 	for {
-		p := <-s.inbound
-		s.rxBytes += uint32(p.Length)  // keep track of stats
-		s.application.Write(p.Payload) // pass packet to application layer
+		select {
+		case p := <-s.inbound:
+			s.rxBytes += uint32(p.Length)  // stats
+			s.application.Write(p.Payload) // pass packet to application layer
+		case <-done:
+			break
+		}
 	}
 }
 
-func (s *Socket) transmit() {
+func (s *Socket) transmit(done chan bool) {
 	buf := make([]byte, 1500)
 	for {
+		select {
+		case <-done:
+			break
+		default:
+			n, err := s.application.Read(buf)
+			if err != nil {
+				return // FIXME
+			}
 
-		n, err := s.application.Read(buf)
-		if err != nil {
-			return // FIXME
+			n, err = s.outbound.Send(buf[:n])
+			if err != nil {
+				return // FIXME
+			}
+
+			s.txBytes += uint32(n) // stats
 		}
-
-		n, err = s.outbound.Send(buf[:n])
-		if err != nil {
-			return // FIXME
-		}
-
-		s.txBytes += uint32(n)
 	}
 }
