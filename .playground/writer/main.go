@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	addr := "192.168.1.77:29898"
+	addr := "10.0.0.94:22"
 
 	c, err := rdtp.Dial(addr)
 	if err != nil {

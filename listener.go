@@ -1,9 +1,8 @@
 package rdtp
 
 import (
+	"io"
 	"net"
-	"strconv"
-	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -13,57 +12,82 @@ import (
 // Implements the net.Listener interface
 // https://golang.org/pkg/net/#Listener
 type Listener struct {
-	addr *Addr
+	laddr *Addr
+	svc   net.Conn
 }
 
 // Listen announces on the local network address
 func Listen(address string) (net.Listener, error) {
-	splt := strings.Split(address, ":")
-
-	if len(splt) > 2 || len(splt) == 0 {
-		return nil, errors.New("invalid ipv4 address")
+	svc, err := net.Dial("unix", DefaultRDTPServiceAddr)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not connect to rdtp service")
 	}
 
-	var a *Addr
-
-	// if no port given
-	if len(splt) == 1 {
-		a.Host = splt[0]
-		a.Port = DiscoveryPort
+	laddr, err := fromString(address)
+	if err != nil {
+		return nil, errors.Wrap(err, "address is not a valid rdtp address")
 	}
 
-	// if port is given (and host may or may not be)
-	if len(splt) <= 2 {
-		a.Host = splt[0] // host might be empty, which is okay
-		if splt[1] == "" {
-			a.Port = uint16(0)
-		} else {
-			port, err := strconv.ParseUint(splt[1], 10, 16)
-			if err != nil {
-				return nil, errors.Wrap(err, "invalid port number")
-			}
-			a.Port = uint16(port)
-		}
+	req, err := NewRequest(RequestTypeListen, laddr, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not create listen request for rdtp service")
 	}
 
-	// TODO
-	return &Listener{addr: a}, nil
+	if _, err = svc.Write(req); err != nil {
+		return nil, errors.Wrap(err, "could not send listen request to rdtp service")
+	}
+
+	l := &Listener{
+		laddr: laddr,
+		svc:   svc,
+	}
+
+	return l, nil
 }
 
 // Accept waits for and returns the next connection to the listener.
 func (l *Listener) Accept() (net.Conn, error) {
-	// TODO
-	return nil, nil
+	buf := make([]byte, 1024)
+	n, err := l.svc.Read(buf)
+	if err != nil {
+		if err == io.EOF {
+			// TODO: handle conn closed by rdtp service
+		}
+		return nil, errors.Wrap(err, "could not read remote address notification")
+	}
+
+	raddr, err := fromString(string(buf[:n]))
+	if err != nil {
+		return nil, errors.Wrap(err, "remote address is not valid")
+	}
+
+	svc, err := net.Dial("unix", DefaultRDTPServiceAddr)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not connect to rdtp service")
+	}
+
+	req, err := NewRequest(RequestTypeAccept, l.laddr, raddr)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not create accept request for rdtp service")
+	}
+
+	if _, err = svc.Write(req); err != nil {
+		return nil, errors.Wrap(err, "could not send accept request to rdtp service")
+	}
+
+	return &Conn{
+		laddr: l.laddr,
+		raddr: raddr,
+		svc:   svc,
+	}, nil
 }
 
 // Close closes the listener.
-// Any blocked Accept operations will be unblocked and return errors.
 func (l *Listener) Close() error {
-	// TODO
-	return nil
+	return l.svc.Close()
 }
 
 // Addr returns the listener's network address.
 func (l *Listener) Addr() net.Addr {
-	return l.addr
+	return l.laddr
 }

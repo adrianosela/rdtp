@@ -1,28 +1,43 @@
 package main
 
 import (
-	"fmt"
+	"io"
 	"log"
+	"net"
 
 	"github.com/adrianosela/rdtp"
 )
 
 func main() {
-	addr := "192.168.1.77"
+	addr := "10.0.0.94:22"
 
-	c, err := rdtp.Dial(addr)
+	l, err := rdtp.Listen(addr)
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer l.Close()
+	log.Printf("Listening for new connections on rdtp port %s\n", addr)
 
-	fmt.Printf("Anything written here will be sent to %s over rdtp:\n", addr)
-	buf := make([]byte, 15000)
 	for {
-		n, err := c.Read(buf)
+		conn, err := l.Accept()
 		if err != nil {
-			log.Println(err)
+			log.Printf("Could not accept connection: %s\n", err)
+			break
 		}
+		log.Println("Accepted new connection")
 
-		fmt.Println(string(buf[:n]))
+		go func(c net.Conn) {
+			for {
+				buf := make([]byte, 1024)
+				n, err := c.Read(buf)
+				if err != nil {
+					if err == io.EOF {
+						break
+					}
+					log.Printf("ERROR: %s\n", err)
+				}
+				log.Println(string(buf[:n]))
+			}
+		}(conn)
 	}
 }

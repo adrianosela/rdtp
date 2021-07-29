@@ -1,12 +1,13 @@
 package service
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
+	"math/rand"
 	"net"
 	"os"
 	"os/signal"
-	"strconv"
-	"strings"
 	"syscall"
 
 	"github.com/adrianosela/rdtp"
@@ -18,8 +19,7 @@ import (
 
 // Service is an abstraction of the rdtp service
 type Service struct {
-	favIP net.IP
-
+	favIP    net.IP
 	sckmgr   *socket.Manager
 	netLayer *ipv4.IPv4
 }
@@ -45,6 +45,15 @@ func (s *Service) Start() error {
 	// receive all rdtp packets passed on by the network
 	// and forward them to the corresponding socket
 	go s.netLayer.Receive(func(p *packet.Packet) error {
+
+		// if SYN, dont care about contents of packet,
+		if p.IsSYN() {
+			if err := s.sckmgr.NotifyListener(p); err != nil {
+				return errors.Wrap(err, "could not notify listener")
+			}
+			return nil
+		}
+
 		if err := s.sckmgr.Deliver(p); err != nil {
 			return errors.Wrap(err, "could not deliver packet to rdtp socket")
 		}
@@ -66,43 +75,105 @@ func (s *Service) Start() error {
 }
 
 func (s *Service) handleClient(c net.Conn) error {
-	defer c.Close()
-
-	// FIXME: worry about listeners later
-
-	rhost, rport, err := extractAddress(c)
+	buf := make([]byte, 1024)
+	n, err := c.Read(buf)
 	if err != nil {
-		return errors.Wrap(err, "could not extract destination")
+		return errors.Wrap(err, "error reading rdtp request")
 	}
 
-	// FIXME: allocate output port here
-	lhost, lport := getOutboundIP(), uint16(0) // rand.Intn(int(rdtp.MaxPort)-1)+1
-
-	sck, err := socket.NewSocket(socket.Config{
-		LocalAddr:          &rdtp.Addr{Host: lhost, Port: lport},
-		RemoteAddr:         &rdtp.Addr{Host: rhost, Port: rport},
-		ToApplicationLayer: c,
-		ToController:       s.netLayer.Send, /* FIXME */
-	})
-	if err != nil {
-		return errors.Wrap(err, "could not get socket for user")
+	var req rdtp.Request
+	if err := json.Unmarshal(buf[:n], &req); err != nil {
+		return errors.Wrap(err, "invalid request json")
 	}
 
-	if err = s.sckmgr.Put(sck); err != nil {
-		return errors.Wrap(err, "could not attach socket to socket manager")
+	return s.handleRequest(c, &req)
+}
+
+func (s *Service) handleRequest(c net.Conn, r *rdtp.Request) error {
+	lhost := getOutboundIP()
+
+	switch r.Type {
+	case rdtp.RequestTypeAccept:
+		defer c.Close()
+		sck, err := socket.NewSocket(socket.Config{
+			LocalAddr:          r.LocalAddr,
+			RemoteAddr:         r.RemoteAddr,
+			ToApplicationLayer: c,
+			ToController:       s.netLayer.Send,
+		})
+		if err != nil {
+			return errors.Wrap(err, "could not get socket for user")
+		}
+		if _, err = c.Write([]byte(fmt.Sprintf("%s:%d", r.LocalAddr.Host, r.LocalAddr.Port))); err != nil {
+			return errors.Wrap(err, "could not reply with local address")
+		}
+
+		if err = s.sckmgr.Put(sck); err != nil {
+			return errors.Wrap(err, "could not attach socket to socket manager")
+		}
+		log.Printf("%s [attached]", sck.ID())
+
+		defer func() {
+			s.sckmgr.Evict(sck.ID())
+			log.Printf("%s [evicted]", sck.ID())
+		}()
+
+		if err = sck.Start(); err != nil {
+			return errors.Wrap(err, "socket failure")
+		}
+		return nil
+	case rdtp.RequestTypeDial:
+		defer c.Close()
+		lport := uint16(rand.Intn(int(rdtp.MaxPort)-1) + 1)
+		sck, err := socket.NewSocket(socket.Config{
+			LocalAddr:          &rdtp.Addr{Host: lhost, Port: lport},
+			RemoteAddr:         r.RemoteAddr,
+			ToApplicationLayer: c,
+			ToController:       s.netLayer.Send,
+		})
+		if err != nil {
+			return errors.Wrap(err, "could not get socket for user")
+		}
+		if _, err = c.Write([]byte(fmt.Sprintf("%s:%d", lhost, lport))); err != nil {
+			return errors.Wrap(err, "could not reply with local address")
+		}
+
+		if err = s.sckmgr.Put(sck); err != nil {
+			return errors.Wrap(err, "could not attach socket to socket manager")
+		}
+		log.Printf("%s [attached]", sck.ID())
+
+		p, err := packet.NewPacket(lport, r.RemoteAddr.Port, nil)
+		if err != nil {
+			log.Printf("failed request: %s\n", err)
+
+			return errors.Wrap(err, "could not create new packet")
+		}
+		p.SetFlagSYN()
+		p.SetSourceIPv4(net.ParseIP(lhost))
+		p.SetDestinationIPv4(net.ParseIP(r.RemoteAddr.Host))
+		p.SetSum()
+
+		// send SYN to destination
+		if err = s.netLayer.Send(p); err != nil {
+			log.Printf("failed request: %s\n", err)
+			return errors.Wrap(err, "could not send SYN to destination")
+		}
+
+		defer func() {
+			s.sckmgr.Evict(sck.ID())
+			log.Printf("%s [evicted]", sck.ID())
+		}()
+
+		if err = sck.Start(); err != nil {
+			return errors.Wrap(err, "socket failure")
+		}
+		return nil
+	case rdtp.RequestTypeListen:
+		return s.sckmgr.PutListener(r.LocalAddr.Port, socket.NewListener(c))
+	default:
+		return errors.New("bad request type")
 	}
-	log.Printf("%s [attached]", sck.ID())
-
-	defer func() {
-		s.sckmgr.Evict(sck.ID())
-		log.Printf("%s [evicted]", sck.ID())
-	}()
-
-	if err = sck.Start(); err != nil {
-		return errors.Wrap(err, "socket failure")
-	}
-
-	return nil
 }
 
 func safeUnixListener(unixAddr string) (net.Listener, error) {
@@ -125,45 +196,45 @@ func safeUnixListener(unixAddr string) (net.Listener, error) {
 	return l, nil
 }
 
-// extractAddress extracts the IPv4 address and rdtp
-// port of the destination address
-func extractAddress(c net.Conn) (string, uint16, error) {
-	buf := make([]byte, 15) // maxIP = 255.255.255.255 (15 chars)
-
-	n, err := c.Read(buf)
-	if err != nil {
-		return "", uint16(0), errors.Wrap(err, "could not read from conn")
-	}
-
-	address := string(buf[:n])
-
-	var host string
-	var port uint16
-
-	if !strings.Contains(address, ":") {
-		host = address
-		port = rdtp.DiscoveryPort
-	} else {
-		hostStr, portStr, err := net.SplitHostPort(address)
-		if err != nil {
-			return "", uint16(0), errors.Wrap(err, "could not split host from port")
-		}
-		host = hostStr
-
-		if portStr == "" {
-			port = 0
-		} else {
-			p64, err := strconv.ParseUint(portStr, 10, 16)
-			if err != nil {
-				return "", uint16(0), errors.Wrap(err, "could parse port number")
-			}
-			port = uint16(p64)
-		}
-	}
-
-	// FIXME: DNS lookup if not IP
-	return host, port, nil
-}
+// // extractAddress extracts the IPv4 address and rdtp
+// // port of the destination address
+// func extractAddress(c net.Conn) (string, uint16, error) {
+// 	buf := make([]byte, 15) // maxIP = 255.255.255.255 (15 chars)
+//
+// 	n, err := c.Read(buf)
+// 	if err != nil {
+// 		return "", uint16(0), errors.Wrap(err, "could not read from conn")
+// 	}
+//
+// 	address := string(buf[:n])
+//
+// 	var host string
+// 	var port uint16
+//
+// 	if !strings.Contains(address, ":") {
+// 		host = address
+// 		port = rdtp.DiscoveryPort
+// 	} else {
+// 		hostStr, portStr, err := net.SplitHostPort(address)
+// 		if err != nil {
+// 			return "", uint16(0), errors.Wrap(err, "could not split host from port")
+// 		}
+// 		host = hostStr
+//
+// 		if portStr == "" {
+// 			port = 0
+// 		} else {
+// 			p64, err := strconv.ParseUint(portStr, 10, 16)
+// 			if err != nil {
+// 				return "", uint16(0), errors.Wrap(err, "could parse port number")
+// 			}
+// 			port = uint16(p64)
+// 		}
+// 	}
+//
+// 	// FIXME: DNS lookup if not IP
+// 	return host, port, nil
+// }
 
 // get preferred outbound ip of this machine
 func getOutboundIP() string {
@@ -174,6 +245,5 @@ func getOutboundIP() string {
 	defer conn.Close()
 
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
-
 	return localAddr.IP.String()
 }

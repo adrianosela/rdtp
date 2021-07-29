@@ -13,6 +13,9 @@ import (
 type Manager struct {
 	sync.RWMutex
 
+	// listeners is a map of port number to listener
+	listeners map[uint16]*Listener
+
 	// sockets is a map of sockets where each socket's
 	// unique identifier is "laddr:lport raddr:rport",
 	// e.g. "192.168.1.75:4444 192.168.1.88:1201"
@@ -22,7 +25,8 @@ type Manager struct {
 // NewManager returns an initialized rdtp sockets manager
 func NewManager() (*Manager, error) {
 	return &Manager{
-		sockets: make(map[string]*Socket),
+		listeners: make(map[uint16]*Listener),
+		sockets:   make(map[string]*Socket),
 	}, nil
 }
 
@@ -59,6 +63,7 @@ func (m *Manager) Evict(id string) error {
 	if _, ok := m.sockets[id]; !ok {
 		return errors.New("socket address not active")
 	}
+
 	delete(m.sockets, id)
 	return nil
 }
@@ -79,6 +84,56 @@ func (m *Manager) Deliver(p *packet.Packet) error {
 	}
 
 	s.inbound <- p
+	return nil
+}
+
+// PutListener attaches a listener to a port
+func (m *Manager) PutListener(port uint16, l *Listener) error {
+	m.RLock()
+	_, ok := m.listeners[port]
+	m.RUnlock()
+	if ok {
+		return fmt.Errorf("port %d is in use", port)
+	}
+
+	m.Lock()
+	defer m.Unlock()
+	m.listeners[port] = l
+
+	return nil
+}
+
+// EvictListener detaches a listener from a port
+func (m *Manager) EvictListener(port uint16) error {
+	m.Lock()
+	defer m.Unlock()
+
+	if l, ok := m.listeners[port]; ok {
+		l.application.Close()
+		delete(m.listeners, port)
+	}
+
+	return nil
+}
+
+// NotifyListener notifies a listener of a SYN packet
+func (m *Manager) NotifyListener(p *packet.Packet) error {
+	m.RLock()
+	l, ok := m.listeners[p.DstPort]
+	m.RUnlock()
+	if !ok {
+		return fmt.Errorf("no listener on port %d", p.DstPort)
+	}
+
+	src, err := p.GetSourceIPv4()
+	if err != nil {
+		return errors.Wrap(err, "could not get destination address:port from packet")
+	}
+
+	if _, err := l.application.Write([]byte(fmt.Sprintf("%s:%d", src, p.SrcPort))); err != nil {
+		return errors.Wrap(err, "could not write packet address to application")
+	}
+
 	return nil
 }
 
