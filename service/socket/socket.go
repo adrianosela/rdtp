@@ -85,8 +85,8 @@ func NewSocket(c Config) (*Socket, error) {
 	}, nil
 }
 
-// Start kicks-off socket processes
-func (s *Socket) Start() error {
+// Run kicks-off socket processes
+func (s *Socket) Run() error {
 	rxdone := make(chan bool, 1)
 	txdone := make(chan bool, 1)
 

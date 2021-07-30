@@ -51,8 +51,9 @@ const (
 	// to acknowledge their request and indicate that it was served successfully
 	ServiceMessageTypeOK = ServiceMessageType("OK")
 
-	// ServiceMessageTypeNotify is the message type sent from rdtp-service to clients
-	// to notify them that there is a new remote client for the client's listener
+	// ServiceMessageTypeNotify is the message type sent from rdtp-service to
+	// clients to notify them that there is a new remote client for
+	// the client's listener
 	ServiceMessageTypeNotify = ServiceMessageType("NOTIFY")
 
 	// ServiceMessageTypeError is the message type sent from rdtp-service to
@@ -62,22 +63,64 @@ const (
 	// ServiceErrorTypeConnClosedByClient is the error type for errors caused by
 	// the rdtp client closing the client -> rdtp-service connection
 	ServiceErrorTypeConnClosedByClient = ServiceErrorType("CONN_CLOSED_BY_CLIENT")
+
+	// ServiceErrorTypeMalformedMessage is the error type for errors
+	// caused by the rdtp client sending a bad/malformed request
+	ServiceErrorTypeMalformedMessage = ServiceErrorType("MALFORMED_MESSAGE")
+
+	// ServiceErrorTypeInvalidMessageType is the error type for errors
+	// caused by the rdtp client sending a message with an invalid type
+	ServiceErrorTypeInvalidMessageType = ServiceErrorType("INVALID_MESSAGE_TYPE")
+
+	// ServiceErrorTypeFailedToCreateSocket is the error type for errors caused
+	// by the rdtp service failing to create a new socket
+	ServiceErrorTypeFailedToCreateSocket = ServiceErrorType("CREATE_SOCKET_FAIL")
+
+	// ServiceErrorTypeFailedToAttachSocket is the error type for errors caused
+	// by the rdtp service failing to attach a created socket to the socket mgr
+	ServiceErrorTypeFailedToAttachSocket = ServiceErrorType("ATTACH_SOCKET_FAIL")
+
+	// ServiceErrorTypeFailedToAttachListener is the error type for errors caused
+	// by the rdtp service failing to attach a created listener to the socket mgr
+	ServiceErrorTypeFailedToAttachListener = ServiceErrorType("ATTACH_LISTENER_FAIL")
+
+	// ServiceErrorTypeFailedHandshake is the error type for errors caused
+	// by the rdtp service failing the rdtp handshake with a remote address
+	ServiceErrorTypeFailedHandshake = ServiceErrorType("HANDSHAKE_FAILED")
+
+	// ServiceErrorTypeFailedCommunication is the error type for errors caused
+	// by the rdtp service failing to communicate with the rdtp client
+	ServiceErrorTypeFailedCommunication = ServiceErrorType("COMMUNICATION_FAILED")
+
+	// ServiceErrorTypeFailedSocketRun is the error type for errors caused
+	// by the rdtp service encountering a failure with running a socket
+	ServiceErrorTypeFailedSocketRun = ServiceErrorType("FAILED_SOCKET_RUN")
 )
 
 // NewClientMessage returns a serialized client message
-func NewClientMessage(clientMessageType ClientMessageType, laddr, raddr *Addr) ([]byte, error) {
+func NewClientMessage(clientMessageType ClientMessageType,
+	laddr, raddr *Addr) ([]byte, error) {
 	laddrd, raddrd := getAddressesDereferenced(laddr, raddr)
-	return json.Marshal(ClientMessage{Type: clientMessageType, LocalAddr: laddrd, RemoteAddr: raddrd})
+	return json.Marshal(ClientMessage{
+		Type:       clientMessageType,
+		LocalAddr:  laddrd,
+		RemoteAddr: raddrd,
+	})
 }
 
 // NewServiceMessage returns a serialized service message
-func NewServiceMessage(serviceMessageType ServiceMessageType, laddr, raddr *Addr, errorType *ServiceErrorType) ([]byte, error) {
+func NewServiceMessage(serviceMessageType ServiceMessageType,
+	laddr, raddr *Addr, errorType *ServiceErrorType) ([]byte, error) {
 	laddrd, raddrd := getAddressesDereferenced(laddr, raddr)
-	if serviceMessageType == ServiceMessageTypeError && errorType != nil {
-		return json.Marshal(ServiceMessage{Type: serviceMessageType, LocalAddr: laddrd, RemoteAddr: raddrd, Error: *errorType})
-
+	msg := ServiceMessage{
+		Type:       serviceMessageType,
+		LocalAddr:  laddrd,
+		RemoteAddr: raddrd,
 	}
-	return json.Marshal(ServiceMessage{Type: serviceMessageType, LocalAddr: laddrd, RemoteAddr: raddrd})
+	if serviceMessageType == ServiceMessageTypeError && errorType != nil {
+		msg.Error = *errorType
+	}
+	return json.Marshal(msg)
 }
 
 func getAddressesDereferenced(laddr, raddr *Addr) (local Addr, remote Addr) {

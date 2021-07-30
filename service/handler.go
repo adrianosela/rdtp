@@ -16,13 +16,15 @@ func (s *Service) handleClientMessage(c net.Conn) {
 	buf := make([]byte, 1024)
 	n, err := c.Read(buf)
 	if err != nil {
-		// TODO send error message
+		log.Println("connection closed by client")
+		sendErrorMessage(c, rdtp.ServiceErrorTypeConnClosedByClient)
 		return
 	}
 
 	var req rdtp.ClientMessage
 	if err := json.Unmarshal(buf[:n], &req); err != nil {
-		// TODO send error message
+		log.Println("malformed client message received")
+		sendErrorMessage(c, rdtp.ServiceErrorTypeMalformedMessage)
 		return
 	}
 
@@ -37,7 +39,8 @@ func (s *Service) handleClientMessage(c net.Conn) {
 		s.handleClientMessageListen(c, req)
 		break
 	default:
-		// TODO send error message
+		log.Println("invalid message type received")
+		sendErrorMessage(c, rdtp.ServiceErrorTypeInvalidMessageType)
 		break
 	}
 
@@ -55,22 +58,22 @@ func (s *Service) handleClientMessageDial(c net.Conn, r rdtp.ClientMessage) {
 		ToController:       s.netLayer.Send,
 	})
 	if err != nil {
-		// TODO send error message
-		// ("could not get socket for user")
+		log.Println(errors.Wrap(err, "failed to create socket"))
+		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedToCreateSocket)
 		return
 	}
 
 	if err = s.sckmgr.Put(sck); err != nil {
-		// TODO send error message
-		// ("could not attach socket to socket manager")
+		log.Println(errors.Wrap(err, "failed to attach socket"))
+		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedToAttachSocket)
 		return
 	}
 	log.Printf("%s [attached]\n", sck.ID())
 
 	// send syn
 	if err := s.sendControlPacket(laddr, &r.RemoteAddr, true, false); err != nil {
-		// TODO send error message
-		// ("could not send SYN control packet to remote")
+		log.Println(errors.Wrap(err, "handshake failed"))
+		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedHandshake)
 		return
 	}
 
@@ -79,22 +82,15 @@ func (s *Service) handleClientMessageDial(c net.Conn, r rdtp.ClientMessage) {
 		log.Printf("%s [evicted]\n", sck.ID())
 	}()
 
-	msg, err := rdtp.NewServiceMessage(rdtp.ServiceMessageTypeOK, laddr, &r.RemoteAddr, nil)
-	if err != nil {
-		// TODO send error message
-		// ("could not create OK message")
+	if err := sendOKMessage(c, laddr, &r.RemoteAddr); err != nil {
+		log.Println(errors.Wrap(err, "failed to send ok message"))
+		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedCommunication)
 		return
 	}
 
-	if _, err = c.Write(msg); err != nil {
-		// TODO send error message
-		// ("could not reply with OK message")
-		return
-	}
-
-	if err = sck.Start(); err != nil {
-		// TODO send error message
-		// ("socket failure")
+	if err = sck.Run(); err != nil {
+		log.Println(errors.Wrap(err, "socket run failed"))
+		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedSocketRun)
 		return
 	}
 
@@ -111,14 +107,14 @@ func (s *Service) handleClientMessageAccept(c net.Conn, r rdtp.ClientMessage) {
 		ToController:       s.netLayer.Send,
 	})
 	if err != nil {
-		// TODO send error message
-		// ("could not get socket for user")
+		log.Println(errors.Wrap(err, "failed to create socket"))
+		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedToCreateSocket)
 		return
 	}
 
 	if err = s.sckmgr.Put(sck); err != nil {
-		// TODO send error message
-		// ("could not attach socket to socket manager")
+		log.Println(errors.Wrap(err, "failed to attach socket"))
+		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedToAttachSocket)
 		return
 	}
 	log.Printf("%s [attached]\n", sck.ID())
@@ -128,22 +124,15 @@ func (s *Service) handleClientMessageAccept(c net.Conn, r rdtp.ClientMessage) {
 		log.Printf("%s [evicted]\n", sck.ID())
 	}()
 
-	msg, err := rdtp.NewServiceMessage(rdtp.ServiceMessageTypeOK, &r.LocalAddr, &r.RemoteAddr, nil)
-	if err != nil {
-		// TODO send error message
-		// ("could not create OK message")
+	if err := sendOKMessage(c, &r.LocalAddr, &r.RemoteAddr); err != nil {
+		log.Println(errors.Wrap(err, "failed to send ok message"))
+		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedCommunication)
 		return
 	}
 
-	if _, err = c.Write(msg); err != nil {
-		// TODO send error message
-		// ("could not reply with OK message")
-		return
-	}
-
-	if err = sck.Start(); err != nil {
-		// TODO send error message
-		// ("socket failure")
+	if err = sck.Run(); err != nil {
+		log.Println(errors.Wrap(err, "socket run failed"))
+		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedSocketRun)
 		return
 	}
 
@@ -152,22 +141,15 @@ func (s *Service) handleClientMessageAccept(c net.Conn, r rdtp.ClientMessage) {
 
 func (s *Service) handleClientMessageListen(c net.Conn, r rdtp.ClientMessage) {
 	if err := s.sckmgr.PutListener(socket.NewListener(r.LocalAddr.Port, c)); err != nil {
-		// TODO send error message
-		// (fmt.Sprintf("could not attach listener to port %d", r.LocalAddr.Port)
+		log.Println(errors.Wrap(err, "failed to attach listener"))
+		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedToAttachListener)
 		return
 	}
-	msg, err := rdtp.NewServiceMessage(rdtp.ServiceMessageTypeOK, &r.LocalAddr, nil, nil)
-	if err != nil {
-		// TODO send error message
-		// ("could not create OK message")
+	if err := sendOKMessage(c, &r.LocalAddr, &r.RemoteAddr); err != nil {
+		log.Println(errors.Wrap(err, "failed to send ok message"))
+		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedCommunication)
 		return
 	}
-	if _, err = c.Write(msg); err != nil {
-		// TODO send error message
-		// ("could not reply with OK message")
-		return
-	}
-
 	return
 }
 
