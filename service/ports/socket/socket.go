@@ -47,23 +47,23 @@ type Config struct {
 	LocalAddr  *rdtp.Addr // local rdtp address
 	RemoteAddr *rdtp.Addr // remote rdtp address
 
-	ToApplicationLayer net.Conn
-	ToController       func(p *packet.Packet) error
+	ToApplication net.Conn
+	ToNetwork     func(p *packet.Packet) error
 }
 
-// NewSocket returns a newly allocated socket
-func NewSocket(c Config) (*Socket, error) {
+// New is the socket constructor
+func New(c Config) (*Socket, error) {
 	if c.LocalAddr == nil || net.ParseIP(c.LocalAddr.Host) == nil {
 		return nil, errors.New("invalid local address")
 	}
 	if c.RemoteAddr == nil || net.ParseIP(c.LocalAddr.Host) == nil {
 		return nil, errors.New("remote address cannot be nil")
 	}
-	if c.ToApplicationLayer == nil {
+	if c.ToApplication == nil {
 		return nil, errors.New("connection to application layer cannot be nil")
 	}
-	if c.ToController == nil {
-		return nil, errors.New("connection to controller cannot be nil")
+	if c.ToApplication == nil {
+		return nil, errors.New("connection to network layer cannot be nil")
 	}
 
 	la, ra := net.ParseIP(c.LocalAddr.Host), net.ParseIP(c.RemoteAddr.Host)
@@ -72,7 +72,7 @@ func NewSocket(c Config) (*Socket, error) {
 	outFunc := func(p *packet.Packet) error {
 		p.SetSourceIPv4(la)
 		p.SetDestinationIPv4(ra)
-		return c.ToController(p)
+		return c.ToNetwork(p)
 	}
 
 	outbound, err := factory.New(lp, rp, outFunc, packet.MaxPayloadBytes)
@@ -83,7 +83,7 @@ func NewSocket(c Config) (*Socket, error) {
 	return &Socket{
 		lAddr:       c.LocalAddr,
 		rAddr:       c.RemoteAddr,
-		application: c.ToApplicationLayer,
+		application: c.ToApplication,
 		outbound:    outbound,
 		inbound:     make(chan *packet.Packet, 100),
 		shutdown:    make(chan bool, 1),
@@ -112,6 +112,11 @@ func (s *Socket) Close() {
 	close(s.shutdown)
 	// close conn to application layer
 	s.application.Close()
+}
+
+// Deliver delivers a packet to a socket's inbound packet channel
+func (s *Socket) Deliver(p *packet.Packet) {
+	s.inbound <- p
 }
 
 // Run kicks-off socket processes

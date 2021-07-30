@@ -11,14 +11,14 @@ import (
 	"github.com/adrianosela/rdtp"
 	"github.com/adrianosela/rdtp/ipv4"
 	"github.com/adrianosela/rdtp/packet"
-	"github.com/adrianosela/rdtp/service/socket"
+	"github.com/adrianosela/rdtp/service/ports"
 	"github.com/pkg/errors"
 )
 
 // Service is an abstraction of the rdtp service
 type Service struct {
-	sckmgr   *socket.Manager
-	netLayer *ipv4.IPv4
+	portsManager *ports.Manager
+	network      *ipv4.IPv4
 }
 
 // NewService returns an rdtp service instance
@@ -27,13 +27,13 @@ func NewService() (*Service, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "could not acquire network")
 	}
-	socketManager, err := socket.NewManager()
+	portsManager, err := ports.NewManager()
 	if err != nil {
 		return nil, errors.Wrap(err, "could not initialize socket manager")
 	}
 	return &Service{
-		sckmgr:   socketManager,
-		netLayer: network,
+		portsManager: portsManager,
+		network:      network,
 	}, nil
 }
 
@@ -41,8 +41,8 @@ func NewService() (*Service, error) {
 func (s *Service) Run() error {
 	// receive all rdtp packets passed on by the network
 	// and forward them to the corresponding socket
-	go s.netLayer.Receive(func(p *packet.Packet) error {
-		if err := s.sckmgr.Deliver(p); err != nil {
+	go s.network.Receive(func(p *packet.Packet) error {
+		if err := s.portsManager.Deliver(p); err != nil {
 			// TODO: send error message outbound
 			return errors.Wrap(err, "could not deliver packet to rdtp socket")
 		}

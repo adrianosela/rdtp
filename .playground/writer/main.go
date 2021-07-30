@@ -23,7 +23,8 @@ func main() {
 	for {
 		text, _ := reader.ReadString('\n')
 		if _, err := c.Write([]byte(text)[:len(text)-1]); err != nil {
-			log.Fatal(errors.Wrap(err, "Failed to write message"))
+			log.Println(errors.Wrap(err, "Failed to write message"))
+			return
 		}
 	}
 }

@@ -2,13 +2,15 @@ package service
 
 import (
 	"encoding/json"
+	"io"
 	"log"
 	"math/rand"
 	"net"
 
 	"github.com/adrianosela/rdtp"
 	"github.com/adrianosela/rdtp/packet"
-	"github.com/adrianosela/rdtp/service/socket"
+	"github.com/adrianosela/rdtp/service/ports/listener"
+	"github.com/adrianosela/rdtp/service/ports/socket"
 	"github.com/pkg/errors"
 )
 
@@ -49,11 +51,11 @@ func (s *Service) handleClientMessage(c net.Conn) {
 
 func (s *Service) handleClientMessageDial(c net.Conn, r rdtp.ClientMessage) {
 	laddr := &rdtp.Addr{Host: getOutboundIP(), Port: uint16(rand.Intn(int(rdtp.MaxPort)-1) + 1)}
-	sck, err := socket.NewSocket(socket.Config{
+	sck, err := socket.New(socket.Config{
 		LocalAddr:          laddr,
 		RemoteAddr:         &r.RemoteAddr,
 		ToApplicationLayer: c,
-		ToController:       s.netLayer.Send,
+		ToController:       s.network.Send,
 	})
 	if err != nil {
 		c.Close()
@@ -62,13 +64,13 @@ func (s *Service) handleClientMessageDial(c net.Conn, r rdtp.ClientMessage) {
 		return
 	}
 
-	if err = s.sckmgr.Put(sck); err != nil {
+	if err = s.portsManager.Put(sck); err != nil {
 		sck.Close()
 		log.Println(errors.Wrap(err, "failed to attach socket"))
 		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedToAttachSocket)
 		return
 	}
-	defer s.sckmgr.Evict(sck.ID())
+	defer s.portsManager.Evict(sck.ID())
 
 	// send syn
 	if err := s.sendControlPacket(laddr, &r.RemoteAddr, true, false, false); err != nil {
@@ -95,11 +97,11 @@ func (s *Service) handleClientMessageDial(c net.Conn, r rdtp.ClientMessage) {
 }
 
 func (s *Service) handleClientMessageAccept(c net.Conn, r rdtp.ClientMessage) {
-	sck, err := socket.NewSocket(socket.Config{
+	sck, err := socket.New(socket.Config{
 		LocalAddr:          &r.LocalAddr,
 		RemoteAddr:         &r.RemoteAddr,
 		ToApplicationLayer: c,
-		ToController:       s.netLayer.Send,
+		ToController:       s.network.Send,
 	})
 	if err != nil {
 		c.Close()
@@ -108,13 +110,13 @@ func (s *Service) handleClientMessageAccept(c net.Conn, r rdtp.ClientMessage) {
 		return
 	}
 
-	if err = s.sckmgr.Put(sck); err != nil {
+	if err = s.portsManager.Put(sck); err != nil {
 		sck.Close()
 		log.Println(errors.Wrap(err, "failed to attach socket"))
 		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedToAttachSocket)
 		return
 	}
-	defer s.sckmgr.Evict(sck.ID())
+	defer s.portsManager.Evict(sck.ID())
 
 	if err := sendOKMessage(c, &r.LocalAddr, &r.RemoteAddr); err != nil {
 		log.Println(errors.Wrap(err, "failed to send ok message"))
@@ -134,12 +136,12 @@ func (s *Service) handleClientMessageAccept(c net.Conn, r rdtp.ClientMessage) {
 }
 
 func (s *Service) handleClientMessageListen(c net.Conn, r rdtp.ClientMessage) {
-	if err := s.sckmgr.PutListener(socket.NewListener(r.LocalAddr.Port, c)); err != nil {
+	if err := s.portsManager.AttachListener(listener.New(r.LocalAddr.Port, c)); err != nil {
 		log.Println(errors.Wrap(err, "failed to attach listener"))
 		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedToAttachListener)
 		return
 	}
-	defer s.sckmgr.EvictListener(r.LocalAddr.Port)
+	defer s.portsManager.DetachListener(r.LocalAddr.Port)
 
 	if err := sendOKMessage(c, &r.LocalAddr, &r.RemoteAddr); err != nil {
 		log.Println(errors.Wrap(err, "failed to send ok message"))
@@ -148,9 +150,13 @@ func (s *Service) handleClientMessageListen(c net.Conn, r rdtp.ClientMessage) {
 	}
 
 	// wait for EOF (connection close by client)
-	c.Read(make([]byte, 1))
-
-	return
+	for {
+		if _, err := c.Read(make([]byte, 1)); err != nil {
+			if err == io.EOF {
+				return
+			}
+		}
+	}
 }
 
 func (s *Service) sendControlPacket(laddr, raddr *rdtp.Addr, syn, ack, fin bool) error {
@@ -172,7 +178,7 @@ func (s *Service) sendControlPacket(laddr, raddr *rdtp.Addr, syn, ack, fin bool)
 	p.SetSum()
 
 	// send SYN to destination
-	if err = s.netLayer.Send(p); err != nil {
+	if err = s.network.Send(p); err != nil {
 		return errors.Wrap(err, "could not send SYN to destination")
 	}
 
