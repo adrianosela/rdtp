@@ -3,14 +3,13 @@ package rdtp
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net"
 
 	"github.com/pkg/errors"
 )
 
-// Listener listens for new rdtp
-// connections on the interface address.
+// Listener listens for new inbound rdtp
+// connections on a local rdtp port
 // Implements the net.Listener interface
 // https://golang.org/pkg/net/#Listener
 type Listener struct {
@@ -54,16 +53,7 @@ func Listen(address string) (net.Listener, error) {
 
 // Accept waits for and returns the next connection to the listener.
 func (l *Listener) Accept() (net.Conn, error) {
-	buf := make([]byte, 1024)
-	n, err := l.svc.Read(buf)
-	if err != nil {
-		if err == io.EOF {
-			return nil, errors.New("Listener closed by rdtp service")
-		}
-		return nil, errors.Wrap(err, "could not read remote address notification")
-	}
-
-	raddr, err := fromString(string(buf[:n]))
+	verifiedRemoteAddr, err := waitForServiceMessageNotify(l.svc)
 	if err != nil {
 		return nil, errors.Wrap(err, "remote address is not valid")
 	}
@@ -73,7 +63,7 @@ func (l *Listener) Accept() (net.Conn, error) {
 		return nil, errors.Wrap(err, "could not connect to rdtp service")
 	}
 
-	req, err := NewClientMessage(ClientMessageTypeAccept, l.laddr, raddr)
+	req, err := NewClientMessage(ClientMessageTypeAccept, l.laddr, verifiedRemoteAddr)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create accept request for rdtp service")
 	}
@@ -89,7 +79,7 @@ func (l *Listener) Accept() (net.Conn, error) {
 
 	return &Conn{
 		laddr: verifiedLocalAddr,
-		raddr: raddr,
+		raddr: verifiedRemoteAddr,
 		svc:   svc,
 	}, nil
 }
@@ -125,4 +115,27 @@ func waitForServiceMessageOK(c net.Conn) (*Addr, error) {
 	}
 
 	return &msg.LocalAddr, nil
+}
+
+func waitForServiceMessageNotify(c net.Conn) (*Addr, error) {
+	buf := make([]byte, 1024)
+	n, err := c.Read(buf)
+	if err != nil {
+		return nil, errors.Wrap(err, "error reading rdtp service message")
+	}
+
+	var msg ServiceMessage
+	if err := json.Unmarshal(buf[:n], &msg); err != nil {
+		return nil, errors.Wrap(err, "invalid request json")
+	}
+
+	if msg.Type == ServiceMessageTypeError {
+		return nil, fmt.Errorf("Error service message: %s", msg.Error)
+	}
+
+	if msg.Type != ServiceMessageTypeNotify {
+		return nil, fmt.Errorf("Not NOTIFY service message type %s", msg.Type)
+	}
+
+	return &msg.RemoteAddr, nil
 }

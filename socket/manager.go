@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/adrianosela/rdtp"
 	"github.com/adrianosela/rdtp/packet"
 	"github.com/pkg/errors"
 )
@@ -133,12 +134,18 @@ func (m *Manager) notifyListener(p *packet.Packet) error {
 		return fmt.Errorf("no listener on port %d", p.DstPort)
 	}
 
-	src, err := p.GetSourceIPv4()
+	remoteAddress, err := p.GetSourceIPv4()
 	if err != nil {
-		return errors.Wrap(err, "could not get destination address:port from packet")
+		return errors.Wrap(err, "could not get destination address from packet")
 	}
 
-	if _, err := l.notifyTo.Write([]byte(fmt.Sprintf("%s:%d", src, p.SrcPort))); err != nil {
+	msg, err := rdtp.NewServiceMessage(rdtp.ServiceMessageTypeNotify, nil,
+		&rdtp.Addr{Host: remoteAddress.String(), Port: p.SrcPort}, nil)
+	if err != nil {
+		return errors.Wrap(err, "could not create NOTIFY service message")
+	}
+
+	if _, err := l.notifyTo.Write(msg); err != nil {
 		return errors.Wrap(err, "could not write notification (packet address) to application")
 	}
 
