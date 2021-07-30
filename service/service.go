@@ -43,6 +43,7 @@ func (s *Service) Run() error {
 	// and forward them to the corresponding socket
 	go s.netLayer.Receive(func(p *packet.Packet) error {
 		if err := s.sckmgr.Deliver(p); err != nil {
+			// TODO: send error message outbound
 			return errors.Wrap(err, "could not deliver packet to rdtp socket")
 		}
 		return nil

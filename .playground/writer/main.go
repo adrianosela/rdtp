@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/adrianosela/rdtp"
+	"github.com/pkg/errors"
 )
 
 func main() {
@@ -22,7 +23,7 @@ func main() {
 	for {
 		text, _ := reader.ReadString('\n')
 		if _, err := c.Write([]byte(text)[:len(text)-1]); err != nil {
-			log.Fatal(err)
+			log.Fatal(errors.Wrap(err, "Failed to write message"))
 		}
 	}
 }

@@ -1,6 +1,7 @@
 package rdtp
 
 import (
+	"fmt"
 	"net"
 	"time"
 
@@ -57,7 +58,11 @@ func (c Conn) Read(b []byte) (n int, err error) {
 
 // Write writes data to the connection.
 func (c Conn) Write(b []byte) (n int, err error) {
-	return c.svc.Write(b)
+	n, err = c.svc.Write(b)
+	if err != nil && err.Error() == fmt.Sprintf("write unix ->%s: write: broken pipe", DefaultRDTPServiceAddr) {
+		err = errors.New("connection closed by rdtp service")
+	}
+	return
 }
 
 // Close closes the connection.
