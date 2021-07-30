@@ -48,8 +48,6 @@ func (s *Service) handleClientMessage(c net.Conn) {
 }
 
 func (s *Service) handleClientMessageDial(c net.Conn, r rdtp.ClientMessage) {
-	defer c.Close()
-
 	laddr := &rdtp.Addr{Host: getOutboundIP(), Port: uint16(rand.Intn(int(rdtp.MaxPort)-1) + 1)}
 	sck, err := socket.NewSocket(socket.Config{
 		LocalAddr:          laddr,
@@ -62,25 +60,21 @@ func (s *Service) handleClientMessageDial(c net.Conn, r rdtp.ClientMessage) {
 		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedToCreateSocket)
 		return
 	}
+	defer sck.Close()
 
 	if err = s.sckmgr.Put(sck); err != nil {
 		log.Println(errors.Wrap(err, "failed to attach socket"))
 		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedToAttachSocket)
 		return
 	}
-	log.Printf("%s [attached]\n", sck.ID())
+	defer s.sckmgr.Evict(sck.ID())
 
 	// send syn
-	if err := s.sendControlPacket(laddr, &r.RemoteAddr, true, false); err != nil {
+	if err := s.sendControlPacket(laddr, &r.RemoteAddr, true, false, false); err != nil {
 		log.Println(errors.Wrap(err, "handshake failed"))
 		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedHandshake)
 		return
 	}
-
-	defer func() {
-		s.sckmgr.Evict(sck.ID())
-		log.Printf("%s [evicted]\n", sck.ID())
-	}()
 
 	if err := sendOKMessage(c, laddr, &r.RemoteAddr); err != nil {
 		log.Println(errors.Wrap(err, "failed to send ok message"))
@@ -94,12 +88,12 @@ func (s *Service) handleClientMessageDial(c net.Conn, r rdtp.ClientMessage) {
 		return
 	}
 
+	// send fin, dont care about error
+	s.sendControlPacket(laddr, &r.RemoteAddr, false, false, true)
 	return
 }
 
 func (s *Service) handleClientMessageAccept(c net.Conn, r rdtp.ClientMessage) {
-	defer c.Close()
-
 	sck, err := socket.NewSocket(socket.Config{
 		LocalAddr:          &r.LocalAddr,
 		RemoteAddr:         &r.RemoteAddr,
@@ -111,18 +105,14 @@ func (s *Service) handleClientMessageAccept(c net.Conn, r rdtp.ClientMessage) {
 		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedToCreateSocket)
 		return
 	}
+	defer sck.Close()
 
 	if err = s.sckmgr.Put(sck); err != nil {
 		log.Println(errors.Wrap(err, "failed to attach socket"))
 		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedToAttachSocket)
 		return
 	}
-	log.Printf("%s [attached]\n", sck.ID())
-
-	defer func() {
-		s.sckmgr.Evict(sck.ID())
-		log.Printf("%s [evicted]\n", sck.ID())
-	}()
+	defer s.sckmgr.Evict(sck.ID())
 
 	if err := sendOKMessage(c, &r.LocalAddr, &r.RemoteAddr); err != nil {
 		log.Println(errors.Wrap(err, "failed to send ok message"))
@@ -136,6 +126,8 @@ func (s *Service) handleClientMessageAccept(c net.Conn, r rdtp.ClientMessage) {
 		return
 	}
 
+	// send fin, dont care about error
+	s.sendControlPacket(&r.LocalAddr, &r.RemoteAddr, false, false, true)
 	return
 }
 
@@ -145,15 +137,21 @@ func (s *Service) handleClientMessageListen(c net.Conn, r rdtp.ClientMessage) {
 		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedToAttachListener)
 		return
 	}
+	defer s.sckmgr.EvictListener(r.LocalAddr.Port)
+
 	if err := sendOKMessage(c, &r.LocalAddr, &r.RemoteAddr); err != nil {
 		log.Println(errors.Wrap(err, "failed to send ok message"))
 		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedCommunication)
 		return
 	}
+
+	// wait for EOF (connection close by client)
+	c.Read(make([]byte, 1))
+
 	return
 }
 
-func (s *Service) sendControlPacket(laddr, raddr *rdtp.Addr, syn, ack bool) error {
+func (s *Service) sendControlPacket(laddr, raddr *rdtp.Addr, syn, ack, fin bool) error {
 	p, err := packet.NewPacket(laddr.Port, raddr.Port, nil)
 	if err != nil {
 		return errors.Wrap(err, "could not create new packet")
@@ -163,6 +161,9 @@ func (s *Service) sendControlPacket(laddr, raddr *rdtp.Addr, syn, ack bool) erro
 	}
 	if ack {
 		p.SetFlagACK()
+	}
+	if fin {
+		p.SetFlagFIN()
 	}
 	p.SetSourceIPv4(net.ParseIP(laddr.Host))
 	p.SetDestinationIPv4(net.ParseIP(raddr.Host))

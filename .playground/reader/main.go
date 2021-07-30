@@ -32,9 +32,11 @@ func main() {
 				n, err := c.Read(buf)
 				if err != nil {
 					if err == io.EOF {
-						break
+						log.Printf("Connection with %s terminated\n", conn.RemoteAddr())
+						return
 					}
 					log.Printf("ERROR: %s\n", err)
+					continue
 				}
 				log.Printf("[%s] %s", c.RemoteAddr(), string(buf[:n]))
 			}

@@ -2,6 +2,7 @@ package socket
 
 import (
 	"fmt"
+	"log"
 	"sync"
 
 	"github.com/adrianosela/rdtp"
@@ -53,6 +54,8 @@ func (m *Manager) Put(s *Socket) error {
 		return errors.New("socket address already in use")
 	}
 	m.sockets[id] = s
+
+	log.Printf("%s [attached]\n", id)
 	return nil
 }
 
@@ -61,11 +64,15 @@ func (m *Manager) Evict(id string) error {
 	m.Lock()
 	defer m.Unlock()
 
-	if _, ok := m.sockets[id]; !ok {
-		return errors.New("socket address not active")
+	sck, ok := m.sockets[id]
+	if !ok {
+		return nil // already not present
 	}
 
+	sck.application.Close() // let app layer know we are done with it
 	delete(m.sockets, id)
+
+	log.Printf("%s [evicted]\n", id)
 	return nil
 }
 
@@ -79,9 +86,12 @@ func (m *Manager) Deliver(p *packet.Packet) error {
 		return nil
 	}
 
-	id, err := socketIdFromPacket(p)
+	id, err := socketIDFromPacket(p)
 	if err != nil {
 		return errors.Wrap(err, "could not build socket address from packet data")
+	}
+	if p.IsFIN() {
+		return m.Evict(id)
 	}
 
 	m.RLock()
@@ -109,6 +119,8 @@ func (m *Manager) PutListener(l *Listener) error {
 	defer m.Unlock()
 	m.listeners[l.port] = l
 
+	log.Printf("listener on :%d [started]\n", l.port)
+
 	return nil
 }
 
@@ -121,6 +133,8 @@ func (m *Manager) EvictListener(port uint16) error {
 		l.notifyTo.Close()
 		delete(m.listeners, port)
 	}
+
+	log.Printf("listener on :%d [shutdown]\n", port)
 
 	return nil
 }
@@ -152,7 +166,7 @@ func (m *Manager) notifyListener(p *packet.Packet) error {
 	return nil
 }
 
-func socketIdFromPacket(p *packet.Packet) (string, error) {
+func socketIDFromPacket(p *packet.Packet) (string, error) {
 	// destination = local for inbound, remote for outbound pcks
 	dst, err := p.GetDestinationIPv4()
 	if err != nil {

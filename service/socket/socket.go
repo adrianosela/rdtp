@@ -2,6 +2,7 @@ package socket
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"os/signal"
@@ -88,21 +89,23 @@ func NewSocket(c Config) (*Socket, error) {
 // Run kicks-off socket processes
 func (s *Socket) Run() error {
 	rxdone := make(chan bool, 1)
-	txdone := make(chan bool, 1)
-
 	go s.receive(rxdone)
-	go s.transmit(txdone)
 
-	// TODO: figure out how to handle disconnections
-	// e.g. ensure if any conn along the way breaks,
-	// close all goroutines
+	txdone := make(chan bool, 1)
+	eof := make(chan bool, 1)
+	go s.transmit(txdone, eof)
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
 	for {
-		<-sigs // blocks on signal
-		rxdone <- true
-		txdone <- true
+		select {
+		case <-sigs:
+		case <-eof:
+			txdone <- true
+			rxdone <- true
+			return nil
+		}
 	}
 }
 
@@ -123,31 +126,36 @@ func (s *Socket) RemoteAddr() net.Addr {
 
 // Close closes a socket
 func (s *Socket) Close() {
+	s.application.Close()
 	close(s.inbound)
 }
 
 func (s *Socket) receive(done chan bool) {
 	for {
 		select {
+		case <-done:
+			return
 		case p := <-s.inbound:
 			s.rxBytes += uint32(p.Length)  // stats
 			s.application.Write(p.Payload) // pass packet to application layer
-		case <-done:
-			break
 		}
 	}
 }
 
-func (s *Socket) transmit(done chan bool) {
+func (s *Socket) transmit(done, eof chan bool) {
 	buf := make([]byte, 1500)
 	for {
 		select {
 		case <-done:
-			break
+			return
 		default:
 			n, err := s.application.Read(buf)
 			if err != nil {
-				return // FIXME
+				if err == io.EOF {
+					eof <- true
+					return
+				}
+				continue
 			}
 
 			n, err = s.outbound.Send(buf[:n])
