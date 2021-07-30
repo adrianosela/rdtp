@@ -37,6 +37,9 @@ type Socket struct {
 	// and be written as messages to
 	// the application layer
 	inbound chan *packet.Packet
+
+	// used to notify socket of shutdown
+	shutdown chan bool
 }
 
 // Config is the necessary configuration to initialize a socket
@@ -83,30 +86,8 @@ func NewSocket(c Config) (*Socket, error) {
 		application: c.ToApplicationLayer,
 		outbound:    outbound,
 		inbound:     make(chan *packet.Packet, 100),
+		shutdown:    make(chan bool, 1),
 	}, nil
-}
-
-// Run kicks-off socket processes
-func (s *Socket) Run() error {
-	rxdone := make(chan bool, 1)
-	go s.receive(rxdone)
-
-	txdone := make(chan bool, 1)
-	eof := make(chan bool, 1)
-	go s.transmit(txdone, eof)
-
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-
-	for {
-		select {
-		case <-sigs:
-		case <-eof:
-			txdone <- true
-			rxdone <- true
-			return nil
-		}
-	}
 }
 
 // ID returns the of unique identifier of the socket
@@ -126,14 +107,42 @@ func (s *Socket) RemoteAddr() net.Addr {
 
 // Close closes a socket
 func (s *Socket) Close() {
+	// shutdown reader/writer threads
+	s.shutdown <- true
+	close(s.shutdown)
+	// close conn to application layer
 	s.application.Close()
-	close(s.inbound)
+}
+
+// Run kicks-off socket processes
+func (s *Socket) Run() error {
+	rxdone := make(chan bool, 1)
+	txdone := make(chan bool, 1)
+
+	go s.receive(rxdone)
+	go s.transmit(txdone)
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+
+	for {
+		select {
+		case <-sigs:
+		case <-s.shutdown:
+			txdone <- true
+			rxdone <- true
+			close(txdone)
+			close(rxdone)
+			return nil
+		}
+	}
 }
 
 func (s *Socket) receive(done chan bool) {
 	for {
 		select {
 		case <-done:
+			close(s.inbound)
 			return
 		case p := <-s.inbound:
 			s.rxBytes += uint32(p.Length)  // stats
@@ -142,7 +151,7 @@ func (s *Socket) receive(done chan bool) {
 	}
 }
 
-func (s *Socket) transmit(done, eof chan bool) {
+func (s *Socket) transmit(done chan bool) {
 	buf := make([]byte, 1500)
 	for {
 		select {
@@ -152,7 +161,7 @@ func (s *Socket) transmit(done, eof chan bool) {
 			n, err := s.application.Read(buf)
 			if err != nil {
 				if err == io.EOF {
-					eof <- true
+					s.shutdown <- true // client closed conn, shutdown socket
 					return
 				}
 				continue

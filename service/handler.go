@@ -56,13 +56,14 @@ func (s *Service) handleClientMessageDial(c net.Conn, r rdtp.ClientMessage) {
 		ToController:       s.netLayer.Send,
 	})
 	if err != nil {
+		c.Close()
 		log.Println(errors.Wrap(err, "failed to create socket"))
 		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedToCreateSocket)
 		return
 	}
-	defer sck.Close()
 
 	if err = s.sckmgr.Put(sck); err != nil {
+		sck.Close()
 		log.Println(errors.Wrap(err, "failed to attach socket"))
 		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedToAttachSocket)
 		return
@@ -101,13 +102,14 @@ func (s *Service) handleClientMessageAccept(c net.Conn, r rdtp.ClientMessage) {
 		ToController:       s.netLayer.Send,
 	})
 	if err != nil {
+		c.Close()
 		log.Println(errors.Wrap(err, "failed to create socket"))
 		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedToCreateSocket)
 		return
 	}
-	defer sck.Close()
 
 	if err = s.sckmgr.Put(sck); err != nil {
+		sck.Close()
 		log.Println(errors.Wrap(err, "failed to attach socket"))
 		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedToAttachSocket)
 		return

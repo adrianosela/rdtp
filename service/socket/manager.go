@@ -69,8 +69,9 @@ func (m *Manager) Evict(id string) error {
 		return nil // already not present
 	}
 
-	sck.application.Close() // let app layer know we are done with it
 	delete(m.sockets, id)
+
+	sck.Close()
 
 	log.Printf("%s [evicted]\n", id)
 	return nil
