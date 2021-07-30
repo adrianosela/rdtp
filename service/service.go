@@ -9,8 +9,8 @@ import (
 	"syscall"
 
 	"github.com/adrianosela/rdtp"
-	"github.com/adrianosela/rdtp/ipv4"
 	"github.com/adrianosela/rdtp/packet"
+	"github.com/adrianosela/rdtp/service/network"
 	"github.com/adrianosela/rdtp/service/ports"
 	"github.com/pkg/errors"
 )
@@ -18,12 +18,12 @@ import (
 // Service is an abstraction of the rdtp service
 type Service struct {
 	portsManager *ports.Manager
-	network      *ipv4.IPv4
+	network      *network.IPv4
 }
 
 // NewService returns an rdtp service instance
 func NewService() (*Service, error) {
-	network, err := ipv4.NewIPv4()
+	network, err := network.NewIPv4()
 	if err != nil {
 		return nil, errors.Wrap(err, "could not acquire network")
 	}
