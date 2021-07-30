@@ -11,7 +11,7 @@ import (
 	"github.com/adrianosela/rdtp"
 	"github.com/adrianosela/rdtp/ipv4"
 	"github.com/adrianosela/rdtp/packet"
-	"github.com/adrianosela/rdtp/socket"
+	"github.com/adrianosela/rdtp/service/socket"
 	"github.com/pkg/errors"
 )
 

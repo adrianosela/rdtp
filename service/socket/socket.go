@@ -8,8 +8,8 @@ import (
 	"syscall"
 
 	"github.com/adrianosela/rdtp"
-	"github.com/adrianosela/rdtp/factory"
 	"github.com/adrianosela/rdtp/packet"
+	"github.com/adrianosela/rdtp/packet/factory"
 	"github.com/pkg/errors"
 )
 

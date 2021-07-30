@@ -3,6 +3,7 @@ package rdtp
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 
 	"github.com/pkg/errors"
@@ -40,6 +41,9 @@ func Listen(address string) (net.Listener, error) {
 
 	verifiedLocalAddr, err := waitForServiceMessageOK(svc)
 	if err != nil {
+		if err == io.EOF {
+			return nil, errors.New("Listener terminated by rdtp service")
+		}
 		return nil, errors.Wrap(err, "could not receive OK message from service")
 	}
 
@@ -55,6 +59,9 @@ func Listen(address string) (net.Listener, error) {
 func (l *Listener) Accept() (net.Conn, error) {
 	verifiedRemoteAddr, err := waitForServiceMessageNotify(l.svc)
 	if err != nil {
+		if err == io.EOF {
+			return nil, errors.New("Listener terminated by rdtp service")
+		}
 		return nil, errors.Wrap(err, "remote address is not valid")
 	}
 
@@ -74,6 +81,9 @@ func (l *Listener) Accept() (net.Conn, error) {
 
 	verifiedLocalAddr, err := waitForServiceMessageOK(svc)
 	if err != nil {
+		if err == io.EOF {
+			return nil, errors.New("Listener terminated by rdtp service")
+		}
 		return nil, errors.Wrap(err, "could not receive OK message from service")
 	}
 
@@ -98,6 +108,9 @@ func waitForServiceMessageOK(c net.Conn) (*Addr, error) {
 	buf := make([]byte, 1024)
 	n, err := c.Read(buf)
 	if err != nil {
+		if err == io.EOF {
+			return nil, err
+		}
 		return nil, errors.Wrap(err, "error reading rdtp service message")
 	}
 
@@ -121,6 +134,9 @@ func waitForServiceMessageNotify(c net.Conn) (*Addr, error) {
 	buf := make([]byte, 1024)
 	n, err := c.Read(buf)
 	if err != nil {
+		if err == io.EOF {
+			return nil, err
+		}
 		return nil, errors.Wrap(err, "error reading rdtp service message")
 	}
 
