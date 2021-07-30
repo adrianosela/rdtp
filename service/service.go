@@ -17,7 +17,6 @@ import (
 
 // Service is an abstraction of the rdtp service
 type Service struct {
-	favIP    net.IP
 	sckmgr   *socket.Manager
 	netLayer *ipv4.IPv4
 }

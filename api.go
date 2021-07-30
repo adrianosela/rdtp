@@ -10,7 +10,6 @@ type ClientMessage struct {
 }
 
 // ServiceMessage is the json model of a message/response from the rdtp service
-// TODO: responses currently not being used
 type ServiceMessage struct {
 	Type       ServiceMessageType `json:"type"`
 	LocalAddr  Addr               `json:"local_addr"`
@@ -52,13 +51,17 @@ const (
 	// to acknowledge their request and indicate that it was served successfully
 	ServiceMessageTypeOK = ServiceMessageType("OK")
 
-	// ServiceMessageNotify is the message type sent from rdtp-service to clients
+	// ServiceMessageTypeNotify is the message type sent from rdtp-service to clients
 	// to notify them that there is a new remote client for the client's listener
 	ServiceMessageTypeNotify = ServiceMessageType("NOTIFY")
 
 	// ServiceMessageTypeError is the message type sent from rdtp-service to
 	// clients to acklowledge their request and indicate that there was an error
 	ServiceMessageTypeError = ServiceMessageType("ERROR")
+
+	// ServiceErrorTypeConnClosedByClient is the error type for errors caused by
+	// the rdtp client closing the client -> rdtp-service connection
+	ServiceErrorTypeConnClosedByClient = ServiceErrorType("CONN_CLOSED_BY_CLIENT")
 )
 
 // NewClientMessage returns a serialized client message

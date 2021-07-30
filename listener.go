@@ -9,6 +9,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	messageBufferBytes = 1024
+)
+
 // Listener listens for new inbound rdtp
 // connections on a local rdtp port
 // Implements the net.Listener interface
@@ -105,7 +109,7 @@ func (l *Listener) Addr() net.Addr {
 }
 
 func waitForServiceMessageOK(c net.Conn) (*Addr, error) {
-	buf := make([]byte, 1024)
+	buf := make([]byte, messageBufferBytes)
 	n, err := c.Read(buf)
 	if err != nil {
 		if err == io.EOF {
@@ -131,7 +135,7 @@ func waitForServiceMessageOK(c net.Conn) (*Addr, error) {
 }
 
 func waitForServiceMessageNotify(c net.Conn) (*Addr, error) {
-	buf := make([]byte, 1024)
+	buf := make([]byte, messageBufferBytes)
 	n, err := c.Read(buf)
 	if err != nil {
 		if err == io.EOF {
