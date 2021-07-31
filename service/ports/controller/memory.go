@@ -124,7 +124,7 @@ func (m *MemoryController) notifyListener(p *packet.Packet) error {
 
 // Deliver delivers an inbound rdtp packet
 func (m *MemoryController) Deliver(p *packet.Packet) error {
-	if p.IsSYN() {
+	if p.IsSYN() && !p.IsACK() {
 		if err := m.notifyListener(p); err != nil {
 			return errors.Wrap(err, "could not notify listener")
 		}

@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"net"
+	"time"
 
 	"github.com/adrianosela/rdtp"
 	"github.com/adrianosela/rdtp/packet"
@@ -72,8 +73,22 @@ func (s *Service) handleClientMessageDial(c net.Conn, r rdtp.ClientMessage) {
 	}
 	defer s.ports.Evict(sck.ID())
 
-	// send syn
+	// send SYN
 	if err := s.sendControlPacket(laddr, &r.RemoteAddr, true, false, false); err != nil {
+		log.Println(errors.Wrap(err, "handshake failed"))
+		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedHandshake)
+		return
+	}
+
+	// wait for SYN ACK
+	if err := sck.WaitForControlPacket(true, true, time.Second*1); err != nil {
+		log.Println(errors.Wrap(err, "handshake failed"))
+		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedHandshake)
+		return
+	}
+
+	// send ACK
+	if err := s.sendControlPacket(laddr, &r.RemoteAddr, false, true, false); err != nil {
 		log.Println(errors.Wrap(err, "handshake failed"))
 		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedHandshake)
 		return
@@ -92,6 +107,7 @@ func (s *Service) handleClientMessageDial(c net.Conn, r rdtp.ClientMessage) {
 	}
 
 	// send fin, dont care about error
+	// TODO: proper FIN handshake?
 	s.sendControlPacket(laddr, &r.RemoteAddr, false, false, true)
 	return
 }
@@ -118,6 +134,20 @@ func (s *Service) handleClientMessageAccept(c net.Conn, r rdtp.ClientMessage) {
 	}
 	defer s.ports.Evict(sck.ID())
 
+	// send SYN ACK
+	if err := s.sendControlPacket(&r.LocalAddr, &r.RemoteAddr, true, true, false); err != nil {
+		log.Println(errors.Wrap(err, "handshake failed"))
+		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedHandshake)
+		return
+	}
+
+	// wait for ACK
+	if err := sck.WaitForControlPacket(false, true, time.Second*1); err != nil {
+		log.Println(errors.Wrap(err, "handshake failed"))
+		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedHandshake)
+		return
+	}
+
 	if err := sendOKMessage(c, &r.LocalAddr, &r.RemoteAddr); err != nil {
 		log.Println(errors.Wrap(err, "failed to send ok message"))
 		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedCommunication)
@@ -131,6 +161,7 @@ func (s *Service) handleClientMessageAccept(c net.Conn, r rdtp.ClientMessage) {
 	}
 
 	// send fin, dont care about error
+	// TODO: proper FIN handshake?
 	s.sendControlPacket(&r.LocalAddr, &r.RemoteAddr, false, false, true)
 	return
 }

@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/adrianosela/rdtp"
 	"github.com/adrianosela/rdtp/packet"
@@ -112,6 +113,24 @@ func (s *Socket) Close() {
 	close(s.shutdown)
 	// close conn to application layer
 	s.application.Close()
+}
+
+// WaitForControlPacket blocks until the expected control packet is received
+func (s *Socket) WaitForControlPacket(syn, ack bool, timeout time.Duration) error {
+	for {
+		select {
+		case p := <-s.inbound:
+			if syn && !p.IsSYN() {
+				return errors.New("received unexpected packet with no SYN")
+			}
+			if ack && !p.IsACK() {
+				return errors.New("received unexpected packet with no ACK")
+			}
+			return nil
+		case <-time.After(timeout):
+			return errors.New("operation timed out")
+		}
+	}
 }
 
 // Deliver delivers a packet to a socket's inbound packet channel
