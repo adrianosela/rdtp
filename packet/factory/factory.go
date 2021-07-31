@@ -38,21 +38,17 @@ func (pf *PacketFactory) Send(msg []byte) (int, error) {
 	rem := msg
 	txBytes := 0
 
-	for len(rem) >= pf.size {
-		chunk, rem = rem[:pf.size], rem[pf.size:]
+	for len(rem) > 0 {
+		if len(rem) >= pf.size {
+			chunk, rem = rem[:pf.size], rem[pf.size:]
+		} else {
+			chunk, rem = rem, []byte{}
+		}
 		if err := pf.packetizeAndForwardChunk(chunk); err != nil {
 			return txBytes, errors.Wrap(err, "could not packatize and forward chunk")
 		}
 		txBytes += len(chunk)
 	}
-
-	if len(rem) > 0 {
-		if err := pf.packetizeAndForwardChunk(rem); err != nil {
-			return txBytes, errors.Wrap(err, "could not packatize and forward chunk")
-		}
-		txBytes += len(rem)
-	}
-
 	return txBytes, nil
 }
 
