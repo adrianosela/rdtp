@@ -47,45 +47,50 @@ func (ip *IPv4) Send(pck *packet.Packet) error {
 	return nil
 }
 
-// Receive forwards all ipv4 packets received which carry rdtp
+// StartReceiver forwards all ipv4 packets received which carry rdtp
 // These ipv4 packets are processed until an rdtp packet.Packet
 // is extracted, then the next() function is called with the packet
-func (ip *IPv4) Receive(next func(*packet.Packet) error) error {
-	rdtpFile := os.NewFile(uintptr(ip.sckfd), fmt.Sprintf("fd %d", ip.sckfd))
+func (ip *IPv4) StartReceiver(forward func(*packet.Packet) error) {
 	buf := make([]byte, 65535) // maximum IP packet
-	for {
-		ipDatagramSize, err := rdtpFile.Read(buf)
-		if err != nil {
-			log.Println(errors.Wrap(err, "could not read data from network socket"))
-			continue
+
+	go func() {
+		rdtpFile := os.NewFile(uintptr(ip.sckfd), fmt.Sprintf("fd %d", ip.sckfd))
+		defer rdtpFile.Close()
+
+		for {
+			ipDatagramSize, err := rdtpFile.Read(buf)
+			if err != nil {
+				log.Println(errors.Wrap(err, "could not read data from network socket"))
+				continue
+			}
+
+			// decode ipv4
+			networkPck := gopacket.NewPacket(
+				buf[:ipDatagramSize],
+				layers.LayerTypeIPv4,
+				gopacket.Default)
+			ipv4NetworkData := networkPck.Layer(layers.LayerTypeIPv4)
+
+			if ipv4NetworkData == nil {
+				log.Println("not an ipv4 packet")
+				continue
+			}
+
+			ipv4 := ipv4NetworkData.(*layers.IPv4)
+
+			rdtpPacket, err := packet.Deserialize(ipv4.Payload)
+			if err != nil {
+				log.Println(errors.Wrap(err, "could not deserialize rdtp packet"))
+				continue
+			}
+
+			rdtpPacket.SetDestinationIPv4(ipv4.DstIP)
+			rdtpPacket.SetSourceIPv4(ipv4.SrcIP)
+
+			if err = forward(rdtpPacket); err != nil {
+				log.Println(errors.Wrap(err, "could not forward received rdtp packet"))
+				continue
+			}
 		}
-
-		// decode ipv4
-		networkPck := gopacket.NewPacket(
-			buf[:ipDatagramSize],
-			layers.LayerTypeIPv4,
-			gopacket.Default)
-		ipv4NetworkData := networkPck.Layer(layers.LayerTypeIPv4)
-
-		if ipv4NetworkData == nil {
-			log.Println("not an ipv4 packet")
-			continue
-		}
-
-		ipv4 := ipv4NetworkData.(*layers.IPv4)
-
-		rdtpPacket, err := packet.Deserialize(ipv4.Payload)
-		if err != nil {
-			log.Println(errors.Wrap(err, "could not deserialize rdtp packet"))
-			continue
-		}
-
-		rdtpPacket.SetDestinationIPv4(ipv4.DstIP)
-		rdtpPacket.SetSourceIPv4(ipv4.SrcIP)
-
-		if err = next(rdtpPacket); err != nil {
-			log.Println(errors.Wrap(err, "could not process received rdtp packet"))
-			continue
-		}
-	}
+	}()
 }

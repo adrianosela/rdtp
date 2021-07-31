@@ -1,4 +1,4 @@
-package ports
+package controller
 
 import (
 	"fmt"
@@ -13,9 +13,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Manager represents the rdtp ports manager.
+// MemoryController represents an in-memory rdtp ports manager.
 // It allocates and deallocates rdtp sockets and listeners.
-type Manager struct {
+type MemoryController struct {
 	sync.RWMutex
 
 	// listeners is a map of port number to listener
@@ -27,28 +27,16 @@ type Manager struct {
 	sockets map[string]*socket.Socket
 }
 
-// NewManager returns an initialized rdtp sockets manager
-func NewManager() (*Manager, error) {
-	return &Manager{
+// NewMemoryController returns an initialized in-memory rdtp sockets manager
+func NewMemoryController() *MemoryController {
+	return &MemoryController{
 		listeners: make(map[uint16]*listener.Listener),
 		sockets:   make(map[string]*socket.Socket),
-	}, nil
-}
-
-// Get gets a socket given its id
-func (m *Manager) Get(id string) (*socket.Socket, error) {
-	m.RLock()
-	defer m.RUnlock()
-
-	s, ok := m.sockets[id]
-	if !ok {
-		return nil, errors.New("socket address not active")
 	}
-	return s, nil
 }
 
-// Put attaches a socket to the manager
-func (m *Manager) Put(s *socket.Socket) error {
+// Put attaches a socket to the controller
+func (m *MemoryController) Put(s *socket.Socket) error {
 	m.Lock()
 	defer m.Unlock()
 
@@ -63,7 +51,7 @@ func (m *Manager) Put(s *socket.Socket) error {
 }
 
 // Evict removes a socket given its id
-func (m *Manager) Evict(id string) error {
+func (m *MemoryController) Evict(id string) error {
 	m.Lock()
 	defer m.Unlock()
 
@@ -81,7 +69,7 @@ func (m *Manager) Evict(id string) error {
 }
 
 // AttachListener attaches a listener to a port
-func (m *Manager) AttachListener(l *listener.Listener) error {
+func (m *MemoryController) AttachListener(l *listener.Listener) error {
 	m.RLock()
 	_, ok := m.listeners[l.Port]
 	m.RUnlock()
@@ -99,7 +87,7 @@ func (m *Manager) AttachListener(l *listener.Listener) error {
 }
 
 // DetachListener detaches a listener from a port
-func (m *Manager) DetachListener(port uint16) error {
+func (m *MemoryController) DetachListener(port uint16) error {
 	m.Lock()
 	defer m.Unlock()
 
@@ -114,7 +102,7 @@ func (m *Manager) DetachListener(port uint16) error {
 }
 
 // notifyListener notifies a listener of an inbound remote connection
-func (m *Manager) notifyListener(p *packet.Packet) error {
+func (m *MemoryController) notifyListener(p *packet.Packet) error {
 	m.RLock()
 	l, ok := m.listeners[p.DstPort]
 	m.RUnlock()
@@ -135,7 +123,7 @@ func (m *Manager) notifyListener(p *packet.Packet) error {
 }
 
 // Deliver delivers an inbound rdtp packet
-func (m *Manager) Deliver(p *packet.Packet) error {
+func (m *MemoryController) Deliver(p *packet.Packet) error {
 	if p.IsSYN() {
 		if err := m.notifyListener(p); err != nil {
 			return errors.Wrap(err, "could not notify listener")
