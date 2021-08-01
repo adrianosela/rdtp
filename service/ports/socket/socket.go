@@ -3,6 +3,7 @@ package socket
 import (
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"os"
 	"os/signal"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/adrianosela/rdtp"
+	"github.com/adrianosela/rdtp/network"
 	"github.com/adrianosela/rdtp/packet"
 	"github.com/adrianosela/rdtp/packet/factory"
 	"github.com/pkg/errors"
@@ -27,10 +29,8 @@ type Socket struct {
 	// connection to app layer
 	application net.Conn
 
-	// messages are read from application
-	// and sent to the packet factory for
-	// formatting and to then be sent out
-	outbound *factory.PacketFactory
+	// connection to network layer
+	network network.Network
 
 	// packets received at the network
 	// are ultimately delivered in this
@@ -48,8 +48,11 @@ type Config struct {
 	LocalAddr  *rdtp.Addr // local rdtp address
 	RemoteAddr *rdtp.Addr // remote rdtp address
 
-	ToApplication net.Conn
-	ToNetwork     func(p *packet.Packet) error
+	// connection to app layer
+	Application net.Conn
+
+	// connection to network layer
+	Network network.Network
 }
 
 // New is the socket constructor
@@ -60,32 +63,18 @@ func New(c Config) (*Socket, error) {
 	if c.RemoteAddr == nil || net.ParseIP(c.LocalAddr.Host) == nil {
 		return nil, errors.New("remote address cannot be nil")
 	}
-	if c.ToApplication == nil {
+	if c.Application == nil {
 		return nil, errors.New("connection to application layer cannot be nil")
 	}
-	if c.ToApplication == nil {
+	if c.Network == nil {
 		return nil, errors.New("connection to network layer cannot be nil")
-	}
-
-	la, ra := net.ParseIP(c.LocalAddr.Host), net.ParseIP(c.RemoteAddr.Host)
-	lp, rp := uint16(c.LocalAddr.Port), uint16(c.RemoteAddr.Port)
-
-	outFunc := func(p *packet.Packet) error {
-		p.SetSourceIPv4(la)
-		p.SetDestinationIPv4(ra)
-		return c.ToNetwork(p)
-	}
-
-	outbound, err := factory.New(lp, rp, outFunc, packet.MaxPayloadBytes)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not initialize new packetfactory")
 	}
 
 	return &Socket{
 		lAddr:       c.LocalAddr,
 		rAddr:       c.RemoteAddr,
-		application: c.ToApplication,
-		outbound:    outbound,
+		application: c.Application,
+		network:     c.Network,
 		inbound:     make(chan *packet.Packet, 100),
 		shutdown:    make(chan bool, 1),
 	}, nil
@@ -176,6 +165,18 @@ func (s *Socket) receive(done chan bool) {
 }
 
 func (s *Socket) transmit(done chan bool) {
+
+	toNetwork := func(p *packet.Packet) error {
+		p.SetSourceIPv4(net.ParseIP(s.lAddr.Host))
+		p.SetDestinationIPv4(net.ParseIP(s.rAddr.Host))
+		return s.network.Send(p)
+	}
+
+	packetizer := factory.DefaultPacketFactory(
+		uint16(s.lAddr.Port),
+		uint16(s.rAddr.Port),
+		toNetwork)
+
 	buf := make([]byte, 1500)
 	for {
 		select {
@@ -191,9 +192,10 @@ func (s *Socket) transmit(done chan bool) {
 				continue
 			}
 
-			n, err = s.outbound.Send(buf[:n])
+			n, err = packetizer.PackAndForwardMessage(buf[:n])
 			if err != nil {
-				return // FIXME
+				log.Printf("[rdtp socket %s] Error packetizing and forwarding message: %s", s.ID(), err)
+				return
 			}
 
 			s.txBytes += uint32(n) // stats

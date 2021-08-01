@@ -9,8 +9,8 @@ import (
 	"syscall"
 
 	"github.com/adrianosela/rdtp"
+	"github.com/adrianosela/rdtp/network"
 	"github.com/adrianosela/rdtp/packet"
-	"github.com/adrianosela/rdtp/service/network"
 	"github.com/adrianosela/rdtp/service/ports/controller"
 	"github.com/pkg/errors"
 )

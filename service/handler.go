@@ -53,10 +53,10 @@ func (s *Service) handleClientMessage(c net.Conn) {
 func (s *Service) handleClientMessageDial(c net.Conn, r rdtp.ClientMessage) {
 	laddr := &rdtp.Addr{Host: getOutboundIP(), Port: uint16(rand.Intn(int(rdtp.MaxPort)-1) + 1)}
 	sck, err := socket.New(socket.Config{
-		LocalAddr:     laddr,
-		RemoteAddr:    &r.RemoteAddr,
-		ToApplication: c,
-		ToNetwork:     s.network.Send,
+		LocalAddr:   laddr,
+		RemoteAddr:  &r.RemoteAddr,
+		Application: c,
+		Network:     s.network,
 	})
 	if err != nil {
 		c.Close()
@@ -114,10 +114,10 @@ func (s *Service) handleClientMessageDial(c net.Conn, r rdtp.ClientMessage) {
 
 func (s *Service) handleClientMessageAccept(c net.Conn, r rdtp.ClientMessage) {
 	sck, err := socket.New(socket.Config{
-		LocalAddr:     &r.LocalAddr,
-		RemoteAddr:    &r.RemoteAddr,
-		ToApplication: c,
-		ToNetwork:     s.network.Send,
+		LocalAddr:   &r.LocalAddr,
+		RemoteAddr:  &r.RemoteAddr,
+		Application: c,
+		Network:     s.network,
 	})
 	if err != nil {
 		c.Close()

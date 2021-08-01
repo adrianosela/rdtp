@@ -15,10 +15,10 @@ var testMsg = []byte(
 		"R. Tolkien. The films are subtitled The Fellowship of the Ring (2001)")
 
 func TestNewPacketFactoryOK(t *testing.T) {
-	p, err := New(1234, 5678,
+	p, err := New(1234, 5678, packet.MaxPayloadBytes,
 		func(x *packet.Packet) error {
 			return nil
-		}, packet.MaxPayloadBytes)
+		})
 
 	assert.NotNil(t, p)
 	assert.Nil(t, err)
@@ -28,24 +28,36 @@ func TestNewPacketFactoryOK(t *testing.T) {
 }
 
 func TestNewPacketFactoryError(t *testing.T) {
-	p, err := New(1234, 5678,
+	p, err := New(1234, 5678, packet.MaxPayloadBytes+1,
 		func(x *packet.Packet) error {
 			return nil
-		}, packet.MaxPayloadBytes+1)
+		})
 
 	assert.Nil(t, p)
 	assert.NotNil(t, err)
 	assert.Equal(t, fmt.Errorf("max size is %d", packet.MaxPayloadBytes), err)
 }
 
+func TestDefaultPacketFactoryOK(t *testing.T) {
+	p := DefaultPacketFactory(1234, 5678,
+		func(x *packet.Packet) error {
+			return nil
+		})
+
+	assert.NotNil(t, p)
+	assert.Equal(t, p.srcPort, uint16(1234))
+	assert.Equal(t, p.dstPort, uint16(5678))
+	assert.Equal(t, p.size, packet.MaxPayloadBytes)
+}
+
 func TestRunPacketFactoryFuncOK(t *testing.T) {
 	funcRan := false
 
-	p, err := New(1234, 5678,
+	p, err := New(1234, 5678, packet.MaxPayloadBytes,
 		func(x *packet.Packet) error {
 			funcRan = true
 			return nil
-		}, packet.MaxPayloadBytes)
+		})
 
 	assert.Nil(t, err)
 	assert.False(t, funcRan)
@@ -60,11 +72,11 @@ func TestPacketizeAndForwardChunkOK(t *testing.T) {
 	size := len(testMsg) / 10
 	chunk := testMsg[:size]
 
-	p, err := New(1234, 5678,
+	p, err := New(1234, 5678, size,
 		func(x *packet.Packet) error {
 			rx = append(rx, x.Payload...)
 			return nil
-		}, size)
+		})
 	assert.Nil(t, err)
 
 	err = p.packetizeAndForwardChunk(chunk)
@@ -79,7 +91,7 @@ func TestPacketizeAndForwardChunkError(t *testing.T) {
 
 	chunk := make([]byte, badChunkLength)
 
-	p, err := New(1234, 5678, func(x *packet.Packet) error { return nil }, 10)
+	p, err := New(1234, 5678, 10, func(x *packet.Packet) error { return nil })
 	assert.Nil(t, err)
 
 	err = p.packetizeAndForwardChunk(chunk)
@@ -92,18 +104,18 @@ func TestPacketizeAndForwardChunkError(t *testing.T) {
 		err.Error())
 }
 
-func TestSendOK(t *testing.T) {
+func TestPackAndForwardMessageOK(t *testing.T) {
 	var rx []byte
 
-	p, err := New(1234, 5678,
+	p, err := New(1234, 5678, 3,
 		func(x *packet.Packet) error {
 			rx = append(rx, x.Payload...)
 			return nil
-		}, 3)
+		})
 
 	assert.Nil(t, err)
 
-	n, err := p.Send(testMsg)
+	n, err := p.PackAndForwardMessage(testMsg)
 
 	// check sent the whole message
 	assert.Nil(t, err)
@@ -113,17 +125,17 @@ func TestSendOK(t *testing.T) {
 	assert.Equal(t, testMsg, rx)
 }
 
-func TestSendError(t *testing.T) {
+func TestPackAndForwardMessageError(t *testing.T) {
 	mockError := errors.New("mock error")
 
-	p, err := New(1234, 5678,
+	p, err := New(1234, 5678, 5,
 		func(x *packet.Packet) error {
 			return mockError
-		}, 5)
+		})
 
 	assert.Nil(t, err)
 
-	_, err = p.Send(testMsg)
+	_, err = p.PackAndForwardMessage(testMsg)
 	assert.NotNil(t, err)
 	assert.Equal(t, errors.Wrap(mockError, "could not packatize and forward chunk: error forwarding packet").Error(), err.Error())
 }

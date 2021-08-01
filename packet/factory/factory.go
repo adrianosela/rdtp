@@ -18,7 +18,7 @@ type PacketFactory struct {
 }
 
 // New returns a new packet factory
-func New(src, dst uint16, fw func(*packet.Packet) error, size int) (*PacketFactory, error) {
+func New(src, dst uint16, size int, fw func(*packet.Packet) error) (*PacketFactory, error) {
 	if size > packet.MaxPayloadBytes {
 		return nil, fmt.Errorf("max size is %d", packet.MaxPayloadBytes)
 	}
@@ -30,9 +30,19 @@ func New(src, dst uint16, fw func(*packet.Packet) error, size int) (*PacketFacto
 	}, nil
 }
 
-// Send chops a stream of bytes onto chunks of maximum size
-// and forwards them as soon as they are ready
-func (pf *PacketFactory) Send(msg []byte) (int, error) {
+// DefaultPacketFactory returns a new packet factory with the maximum chunk size
+func DefaultPacketFactory(src, dst uint16, fw func(*packet.Packet) error) *PacketFactory {
+	return &PacketFactory{
+		srcPort: src,
+		dstPort: dst,
+		fwFunc:  fw,
+		size:    packet.MaxPayloadBytes,
+	}
+}
+
+// PackAndForwardMessage chops a stream of bytes onto chunks of maximum size,
+// wraps them in rdtp Packets and forwards them to the fwFunc
+func (pf *PacketFactory) PackAndForwardMessage(msg []byte) (int, error) {
 	var chunk []byte
 
 	rem := msg
