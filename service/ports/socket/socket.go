@@ -21,6 +21,8 @@ const (
 	flagFmt = "{SYN[%t] ACK[%t] FIN[%t] ERR[%t]}"
 
 	packetChannelSize = 100
+
+	controlPacketWaitTimeout = time.Second * 1
 )
 
 // Socket represents a socket abstraction and carries all
@@ -114,11 +116,12 @@ func (s *Socket) RemoteAddr() net.Addr {
 
 // Close closes a socket
 func (s *Socket) Close() {
+	// close conn to application layer
+	s.application.Close()
+
 	// shutdown reader/writer threads
 	s.shutdown <- true
 	close(s.shutdown)
-	// close conn to application layer
-	s.application.Close()
 }
 
 // receiveControlPacket blocks until the a packet is received (or timeout)
@@ -146,7 +149,7 @@ func (s *Socket) Dial() error {
 		return errors.Wrap(err, "handshake failed when sending SYN")
 	}
 	// wait for SYN ACK
-	if err := receiveControlPacket(s.inbound, true, true, false, false, time.Second*1); err != nil {
+	if err := receiveControlPacket(s.inbound, true, true, false, false, controlPacketWaitTimeout); err != nil {
 		return errors.Wrap(err, "handshake failed when waiting for SYN ACK")
 	}
 	// send ACK
@@ -163,7 +166,7 @@ func (s *Socket) Accept() error {
 		return errors.Wrap(err, "handshake failed when sending SYN ACK")
 	}
 	// wait for ACK
-	if err := receiveControlPacket(s.inbound, false, true, false, false, time.Second*1); err != nil {
+	if err := receiveControlPacket(s.inbound, false, true, false, false, controlPacketWaitTimeout); err != nil {
 		return errors.Wrap(err, "handshake failed when waiting for ACK")
 	}
 	return nil

@@ -61,7 +61,6 @@ func (m *MemoryController) Evict(id string) error {
 	}
 
 	delete(m.sockets, id)
-
 	sck.Close()
 
 	log.Printf("%s [evicted]\n", id)
@@ -135,7 +134,7 @@ func (m *MemoryController) Deliver(p *packet.Packet) error {
 	if err != nil {
 		return errors.Wrap(err, "could not build socket address from packet data")
 	}
-	if p.IsFIN() {
+	if p.IsFIN() && !p.IsACK() {
 		return m.Evict(id)
 	}
 
