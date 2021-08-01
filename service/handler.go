@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/adrianosela/rdtp"
-	"github.com/adrianosela/rdtp/packet"
 	"github.com/adrianosela/rdtp/service/ports/listener"
 	"github.com/adrianosela/rdtp/service/ports/socket"
 	"github.com/pkg/errors"
@@ -74,21 +73,21 @@ func (s *Service) handleClientMessageDial(c net.Conn, r rdtp.ClientMessage) {
 	defer s.ports.Evict(sck.ID())
 
 	// send SYN
-	if err := s.sendControlPacket(laddr, &r.RemoteAddr, true, false, false); err != nil {
+	if err := sck.SendControlPacket(true, false, false, false); err != nil {
 		log.Println(errors.Wrap(err, "handshake failed"))
 		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedHandshake)
 		return
 	}
 
 	// wait for SYN ACK
-	if err := sck.WaitForControlPacket(true, true, time.Second*1); err != nil {
+	if err := sck.WaitForControlPacket(true, true, false, false, time.Second*1); err != nil {
 		log.Println(errors.Wrap(err, "handshake failed"))
 		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedHandshake)
 		return
 	}
 
 	// send ACK
-	if err := s.sendControlPacket(laddr, &r.RemoteAddr, false, true, false); err != nil {
+	if err := sck.SendControlPacket(false, true, false, false); err != nil {
 		log.Println(errors.Wrap(err, "handshake failed"))
 		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedHandshake)
 		return
@@ -108,7 +107,7 @@ func (s *Service) handleClientMessageDial(c net.Conn, r rdtp.ClientMessage) {
 
 	// send fin, dont care about error
 	// TODO: proper FIN handshake?
-	s.sendControlPacket(laddr, &r.RemoteAddr, false, false, true)
+	sck.SendControlPacket(false, false, true, false)
 	return
 }
 
@@ -135,14 +134,14 @@ func (s *Service) handleClientMessageAccept(c net.Conn, r rdtp.ClientMessage) {
 	defer s.ports.Evict(sck.ID())
 
 	// send SYN ACK
-	if err := s.sendControlPacket(&r.LocalAddr, &r.RemoteAddr, true, true, false); err != nil {
+	if err := sck.SendControlPacket(true, true, false, false); err != nil {
 		log.Println(errors.Wrap(err, "handshake failed"))
 		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedHandshake)
 		return
 	}
 
 	// wait for ACK
-	if err := sck.WaitForControlPacket(false, true, time.Second*1); err != nil {
+	if err := sck.WaitForControlPacket(false, true, false, false, time.Second*1); err != nil {
 		log.Println(errors.Wrap(err, "handshake failed"))
 		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedHandshake)
 		return
@@ -162,7 +161,7 @@ func (s *Service) handleClientMessageAccept(c net.Conn, r rdtp.ClientMessage) {
 
 	// send fin, dont care about error
 	// TODO: proper FIN handshake?
-	s.sendControlPacket(&r.LocalAddr, &r.RemoteAddr, false, false, true)
+	sck.SendControlPacket(false, false, true, false)
 	return
 }
 
@@ -188,30 +187,4 @@ func (s *Service) handleClientMessageListen(c net.Conn, r rdtp.ClientMessage) {
 			}
 		}
 	}
-}
-
-func (s *Service) sendControlPacket(laddr, raddr *rdtp.Addr, syn, ack, fin bool) error {
-	p, err := packet.NewPacket(laddr.Port, raddr.Port, nil)
-	if err != nil {
-		return errors.Wrap(err, "could not create new packet")
-	}
-	if syn {
-		p.SetFlagSYN()
-	}
-	if ack {
-		p.SetFlagACK()
-	}
-	if fin {
-		p.SetFlagFIN()
-	}
-	p.SetSourceIPv4(net.ParseIP(laddr.Host))
-	p.SetDestinationIPv4(net.ParseIP(raddr.Host))
-	p.SetSum()
-
-	// send SYN to destination
-	if err = s.network.Send(p); err != nil {
-		return errors.Wrap(err, "could not send SYN to destination")
-	}
-
-	return nil
 }

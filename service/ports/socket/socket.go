@@ -29,8 +29,8 @@ type Socket struct {
 	// connection to app layer
 	application net.Conn
 
-	// connection to network layer
-	network network.Network
+	// packetizes and forwards to network layer
+	packetizer *factory.PacketFactory
 
 	// packets received at the network
 	// are ultimately delivered in this
@@ -70,13 +70,24 @@ func New(c Config) (*Socket, error) {
 		return nil, errors.New("connection to network layer cannot be nil")
 	}
 
+	toNetwork := func(p *packet.Packet) error {
+		p.SetSourceIPv4(net.ParseIP(c.LocalAddr.Host))
+		p.SetDestinationIPv4(net.ParseIP(c.RemoteAddr.Host))
+		return c.Network.Send(p)
+	}
+
 	return &Socket{
 		lAddr:       c.LocalAddr,
 		rAddr:       c.RemoteAddr,
 		application: c.Application,
-		network:     c.Network,
-		inbound:     make(chan *packet.Packet, 100),
-		shutdown:    make(chan bool, 1),
+		packetizer: factory.DefaultPacketFactory(
+			net.ParseIP(c.LocalAddr.Host),
+			net.ParseIP(c.RemoteAddr.Host),
+			uint16(c.LocalAddr.Port),
+			uint16(c.RemoteAddr.Port),
+			toNetwork),
+		inbound:  make(chan *packet.Packet, 100),
+		shutdown: make(chan bool, 1),
 	}, nil
 }
 
@@ -105,21 +116,32 @@ func (s *Socket) Close() {
 }
 
 // WaitForControlPacket blocks until the expected control packet is received
-func (s *Socket) WaitForControlPacket(syn, ack bool, timeout time.Duration) error {
+func (s *Socket) WaitForControlPacket(syn, ack, fin, err bool, timeout time.Duration) error {
 	for {
 		select {
 		case p := <-s.inbound:
-			if syn && !p.IsSYN() {
-				return errors.New("received unexpected packet with no SYN")
+			if syn != p.IsSYN() {
+				return fmt.Errorf("expected a packet with SYN[%t] but got one with SYN[%t]", syn, p.IsSYN())
 			}
-			if ack && !p.IsACK() {
-				return errors.New("received unexpected packet with no ACK")
+			if ack != p.IsACK() {
+				return fmt.Errorf("expected a packet with ACK[%t] but got one with ACK[%t]", ack, p.IsACK())
+			}
+			if fin != p.IsFIN() {
+				return fmt.Errorf("expected a packet with FIN[%t] but got one with FIN[%t]", fin, p.IsFIN())
+			}
+			if err != p.IsERR() {
+				return fmt.Errorf("expected a packet with ERR[%t] but got one with ERR[%t]", err, p.IsERR())
 			}
 			return nil
 		case <-time.After(timeout):
 			return errors.New("operation timed out")
 		}
 	}
+}
+
+// SendControlPacket sends a control packet the socket's remote end
+func (s *Socket) SendControlPacket(syn, ack, fin, err bool) error {
+	return s.packetizer.SendControlPacket(syn, ack, fin, err)
 }
 
 // Deliver delivers a packet to a socket's inbound packet channel
@@ -165,18 +187,6 @@ func (s *Socket) receive(done chan bool) {
 }
 
 func (s *Socket) transmit(done chan bool) {
-
-	toNetwork := func(p *packet.Packet) error {
-		p.SetSourceIPv4(net.ParseIP(s.lAddr.Host))
-		p.SetDestinationIPv4(net.ParseIP(s.rAddr.Host))
-		return s.network.Send(p)
-	}
-
-	packetizer := factory.DefaultPacketFactory(
-		uint16(s.lAddr.Port),
-		uint16(s.rAddr.Port),
-		toNetwork)
-
 	buf := make([]byte, 1500)
 	for {
 		select {
@@ -192,7 +202,7 @@ func (s *Socket) transmit(done chan bool) {
 				continue
 			}
 
-			n, err = packetizer.PackAndForwardMessage(buf[:n])
+			n, err = s.packetizer.PackAndForwardMessage(buf[:n])
 			if err != nil {
 				log.Printf("[rdtp socket %s] Error packetizing and forwarding message: %s", s.ID(), err)
 				return
