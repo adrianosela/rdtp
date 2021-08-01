@@ -17,6 +17,12 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	flagFmt = "{SYN[%t] ACK[%t] FIN[%t] ERR[%t]}"
+
+	packetChannelSize = 100
+)
+
 // Socket represents a socket abstraction and carries all
 // necessary info and statistics about the socket
 type Socket struct {
@@ -86,7 +92,7 @@ func New(c Config) (*Socket, error) {
 			uint16(c.LocalAddr.Port),
 			uint16(c.RemoteAddr.Port),
 			toNetwork),
-		inbound:  make(chan *packet.Packet, 100),
+		inbound:  make(chan *packet.Packet, packetChannelSize),
 		shutdown: make(chan bool, 1),
 	}, nil
 }
@@ -115,22 +121,16 @@ func (s *Socket) Close() {
 	s.application.Close()
 }
 
-// WaitForControlPacket blocks until the expected control packet is received
-func (s *Socket) WaitForControlPacket(syn, ack, fin, err bool, timeout time.Duration) error {
+// receiveControlPacket blocks until the a packet is received (or timeout)
+func receiveControlPacket(in chan *packet.Packet, syn, ack, fin, err bool, timeout time.Duration) error {
 	for {
 		select {
-		case p := <-s.inbound:
-			if syn != p.IsSYN() {
-				return fmt.Errorf("expected a packet with SYN[%t] but got one with SYN[%t]", syn, p.IsSYN())
-			}
-			if ack != p.IsACK() {
-				return fmt.Errorf("expected a packet with ACK[%t] but got one with ACK[%t]", ack, p.IsACK())
-			}
-			if fin != p.IsFIN() {
-				return fmt.Errorf("expected a packet with FIN[%t] but got one with FIN[%t]", fin, p.IsFIN())
-			}
-			if err != p.IsERR() {
-				return fmt.Errorf("expected a packet with ERR[%t] but got one with ERR[%t]", err, p.IsERR())
+		case p := <-in:
+			if syn != p.IsSYN() || ack != p.IsACK() || fin != p.IsFIN() || err != p.IsERR() {
+				return fmt.Errorf(
+					"expected packet with flags %s but got %s",
+					fmt.Sprintf(flagFmt, syn, ack, fin, err),
+					fmt.Sprintf(flagFmt, p.IsSYN(), p.IsACK(), p.IsFIN(), p.IsERR()))
 			}
 			return nil
 		case <-time.After(timeout):
@@ -139,9 +139,34 @@ func (s *Socket) WaitForControlPacket(syn, ack, fin, err bool, timeout time.Dura
 	}
 }
 
-// SendControlPacket sends a control packet the socket's remote end
-func (s *Socket) SendControlPacket(syn, ack, fin, err bool) error {
-	return s.packetizer.SendControlPacket(syn, ack, fin, err)
+// Dial sends a SYN, waits for a SYN ACK, and sends an ACK
+func (s *Socket) Dial() error {
+	// send SYN
+	if err := s.packetizer.SendControlPacket(true, false, false, false); err != nil {
+		return errors.Wrap(err, "handshake failed when sending SYN")
+	}
+	// wait for SYN ACK
+	if err := receiveControlPacket(s.inbound, true, true, false, false, time.Second*1); err != nil {
+		return errors.Wrap(err, "handshake failed when waiting for SYN ACK")
+	}
+	// send ACK
+	if err := s.packetizer.SendControlPacket(false, true, false, false); err != nil {
+		return errors.Wrap(err, "handshake failed when sending ACK")
+	}
+	return nil
+}
+
+// Accept sends a SYN ACK and waits for an ACK
+func (s *Socket) Accept() error {
+	// send SYN ACK
+	if err := s.packetizer.SendControlPacket(true, true, false, false); err != nil {
+		return errors.Wrap(err, "handshake failed when sending SYN ACK")
+	}
+	// wait for ACK
+	if err := receiveControlPacket(s.inbound, false, true, false, false, time.Second*1); err != nil {
+		return errors.Wrap(err, "handshake failed when waiting for ACK")
+	}
+	return nil
 }
 
 // Deliver delivers a packet to a socket's inbound packet channel
@@ -168,6 +193,8 @@ func (s *Socket) Run() error {
 			rxdone <- true
 			close(txdone)
 			close(rxdone)
+			// FIXME: proper FIN handshake -- for now just sending FIN and returning
+			s.packetizer.SendControlPacket(false, false, true, false)
 			return nil
 		}
 	}

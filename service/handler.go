@@ -6,7 +6,6 @@ import (
 	"log"
 	"math/rand"
 	"net"
-	"time"
 
 	"github.com/adrianosela/rdtp"
 	"github.com/adrianosela/rdtp/service/ports/listener"
@@ -72,23 +71,8 @@ func (s *Service) handleClientMessageDial(c net.Conn, r rdtp.ClientMessage) {
 	}
 	defer s.ports.Evict(sck.ID())
 
-	// send SYN
-	if err := sck.SendControlPacket(true, false, false, false); err != nil {
-		log.Println(errors.Wrap(err, "handshake failed"))
-		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedHandshake)
-		return
-	}
-
-	// wait for SYN ACK
-	if err := sck.WaitForControlPacket(true, true, false, false, time.Second*1); err != nil {
-		log.Println(errors.Wrap(err, "handshake failed"))
-		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedHandshake)
-		return
-	}
-
-	// send ACK
-	if err := sck.SendControlPacket(false, true, false, false); err != nil {
-		log.Println(errors.Wrap(err, "handshake failed"))
+	if err := sck.Dial(); err != nil {
+		log.Println(errors.Wrap(err, "socket dial failed"))
 		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedHandshake)
 		return
 	}
@@ -105,9 +89,6 @@ func (s *Service) handleClientMessageDial(c net.Conn, r rdtp.ClientMessage) {
 		return
 	}
 
-	// send fin, dont care about error
-	// TODO: proper FIN handshake?
-	sck.SendControlPacket(false, false, true, false)
 	return
 }
 
@@ -133,16 +114,8 @@ func (s *Service) handleClientMessageAccept(c net.Conn, r rdtp.ClientMessage) {
 	}
 	defer s.ports.Evict(sck.ID())
 
-	// send SYN ACK
-	if err := sck.SendControlPacket(true, true, false, false); err != nil {
-		log.Println(errors.Wrap(err, "handshake failed"))
-		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedHandshake)
-		return
-	}
-
-	// wait for ACK
-	if err := sck.WaitForControlPacket(false, true, false, false, time.Second*1); err != nil {
-		log.Println(errors.Wrap(err, "handshake failed"))
+	if err := sck.Accept(); err != nil {
+		log.Println(errors.Wrap(err, "socket accept failed"))
 		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedHandshake)
 		return
 	}
@@ -159,9 +132,6 @@ func (s *Service) handleClientMessageAccept(c net.Conn, r rdtp.ClientMessage) {
 		return
 	}
 
-	// send fin, dont care about error
-	// TODO: proper FIN handshake?
-	sck.SendControlPacket(false, false, true, false)
 	return
 }
 
