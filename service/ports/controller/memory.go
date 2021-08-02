@@ -60,8 +60,8 @@ func (m *MemoryController) Evict(id string) error {
 		return nil // already not present
 	}
 
-	delete(m.sockets, id)
 	sck.Close()
+	delete(m.sockets, id)
 
 	log.Printf("%s [evicted]\n", id)
 	return nil

@@ -83,11 +83,7 @@ func (s *Service) handleClientMessageDial(c net.Conn, r rdtp.ClientMessage) {
 		return
 	}
 
-	if err = sck.Run(); err != nil {
-		log.Println(errors.Wrap(err, "socket run failed"))
-		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedSocketRun)
-		return
-	}
+	sck.Run()
 
 	return
 }
@@ -126,11 +122,7 @@ func (s *Service) handleClientMessageAccept(c net.Conn, r rdtp.ClientMessage) {
 		return
 	}
 
-	if err = sck.Run(); err != nil {
-		log.Println(errors.Wrap(err, "socket run failed"))
-		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedSocketRun)
-		return
-	}
+	sck.Run()
 
 	return
 }

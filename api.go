@@ -91,10 +91,6 @@ const (
 	// ServiceErrorTypeFailedCommunication is the error type for errors caused
 	// by the rdtp service failing to communicate with the rdtp client
 	ServiceErrorTypeFailedCommunication = ServiceErrorType("COMMUNICATION_FAILED")
-
-	// ServiceErrorTypeFailedSocketRun is the error type for errors caused
-	// by the rdtp service encountering a failure with running a socket
-	ServiceErrorTypeFailedSocketRun = ServiceErrorType("FAILED_SOCKET_RUN")
 )
 
 // NewClientMessage returns a serialized client message

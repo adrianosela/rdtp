@@ -113,10 +113,6 @@ func (s *Socket) RemoteAddr() net.Addr {
 func (s *Socket) Close() {
 	// close conn to application layer
 	s.application.Close()
-
-	// shutdown reader/writer threads
-	s.shutdown <- true
-	close(s.shutdown)
 }
 
 // Deliver delivers a packet to a socket's inbound packet channel
@@ -125,12 +121,11 @@ func (s *Socket) Deliver(p *packet.Packet) {
 }
 
 // Run kicks-off socket processes
-func (s *Socket) Run() error {
-	rxdone := make(chan bool, 1)
-	txdone := make(chan bool, 1)
+func (s *Socket) Run() {
+	done := make(chan bool, 1)
 
-	go s.receive(rxdone)
-	go s.transmit(txdone)
+	go s.receive(done)
+	go s.transmit()
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -139,13 +134,11 @@ func (s *Socket) Run() error {
 		select {
 		case <-sigs:
 		case <-s.shutdown:
-			txdone <- true
-			rxdone <- true
-			close(txdone)
-			close(rxdone)
+			done <- true
+			close(done)
 			// FIXME: proper FIN handshake -- for now just sending FIN and returning
 			s.packetizer.SendControlPacket(false, false, true, false)
-			return nil
+			return
 		}
 	}
 }
@@ -154,7 +147,7 @@ func (s *Socket) receive(done chan bool) {
 	for {
 		select {
 		case <-done:
-			close(s.inbound)
+			close(s.inbound) // TODO: move to after FIN handshake
 			return
 		case p := <-s.inbound:
 			s.rxBytes += uint32(p.Length)  // stats
@@ -163,29 +156,25 @@ func (s *Socket) receive(done chan bool) {
 	}
 }
 
-func (s *Socket) transmit(done chan bool) {
+func (s *Socket) transmit() {
 	buf := make([]byte, 1500)
 	for {
-		select {
-		case <-done:
-			return
-		default:
-			n, err := s.application.Read(buf)
-			if err != nil {
-				if err == io.EOF {
-					s.shutdown <- true // client closed conn, shutdown socket
-					return
-				}
-				continue
-			}
-
-			n, err = s.packetizer.PackAndForwardMessage(buf[:n])
-			if err != nil {
-				log.Printf("[rdtp socket %s] Error packetizing and forwarding message: %s", s.ID(), err)
+		n, err := s.application.Read(buf)
+		if err != nil {
+			if err == io.EOF {
+				s.shutdown <- true
+				close(s.shutdown)
 				return
 			}
-
-			s.txBytes += uint32(n) // stats
+			continue
 		}
+
+		n, err = s.packetizer.PackAndForwardMessage(buf[:n])
+		if err != nil {
+			log.Printf("[rdtp socket %s] Error packetizing and forwarding message: %s", s.ID(), err)
+			return
+		}
+
+		s.txBytes += uint32(n) // stats
 	}
 }
