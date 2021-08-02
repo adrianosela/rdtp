@@ -121,10 +121,8 @@ func (s *Socket) Close() {
 // Deliver delivers a packet to a socket's inbound packet channel
 func (s *Socket) Deliver(p *packet.Packet) {
 	if p.IsFIN() && !p.IsACK() {
-		// log.Println("FINISH (closed by remote): Received FIN [OK]")
 		s.fin <- true
 		s.shutdown <- true
-		close(s.shutdown)
 		return
 	}
 	s.inbound <- p
@@ -143,13 +141,12 @@ func (s *Socket) Run() {
 	for {
 		select {
 		case <-sigs:
-			defer close(s.shutdown)
-			// fallsthrough
 		case <-s.shutdown:
 			done <- true
-			close(done)
-			s.Finish()
+			s.finish()
 			close(s.inbound)
+			close(s.shutdown)
+			close(s.fin)
 			return
 		}
 	}
@@ -159,6 +156,7 @@ func (s *Socket) receive(done chan bool) {
 	for {
 		select {
 		case <-done:
+			close(done)
 			return
 		case p := <-s.inbound:
 			s.rxBytes += uint32(p.Length)  // stats
@@ -174,7 +172,6 @@ func (s *Socket) transmit() {
 		if err != nil {
 			if err == io.EOF {
 				s.shutdown <- true
-				close(s.shutdown)
 				return
 			}
 			continue

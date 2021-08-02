@@ -49,8 +49,7 @@ func (s *Service) Run() error {
 	if err != nil {
 		return errors.Wrap(err, "could not start system's rdtp client listener")
 	}
-
-	log.Printf("[rdtp] service running\n")
+	log.Println("[rdtp] service running")
 
 	for {
 		conn, err := clients.Accept()
