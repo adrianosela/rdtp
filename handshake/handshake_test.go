@@ -11,9 +11,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const (
+	msgMock     = "mock message"
+	recvTimeout = time.Millisecond * 1
+)
+
 var (
 	errMock = errors.New("mock error")
-	msgMock = "mock message"
 
 	flagCombinations = []struct {
 		syn bool
@@ -64,7 +68,7 @@ func TestInitiateConnectionOK(t *testing.T) {
 		assert.False(t, p.IsERR())
 	}()
 
-	err := InitiateConnection(local, func(syn, ack, fin, err bool) error {
+	err := InitiateConnection(local, time.Millisecond*1, func(syn, ack, fin, err bool) error {
 		remote <- mockControlPacket(syn, ack, fin, err)
 		return nil
 	})
@@ -75,7 +79,7 @@ func TestInitiateConnectionOK(t *testing.T) {
 }
 
 func TestInitiateConnectionSendSynError(t *testing.T) {
-	err := InitiateConnection(make(chan *packet.Packet), func(syn, ack, fin, err bool) error {
+	err := InitiateConnection(make(chan *packet.Packet), recvTimeout, func(syn, ack, fin, err bool) error {
 		return errMock
 	})
 	assert.NotNil(t, err)
@@ -98,7 +102,7 @@ func TestInitiateConnectionWaitForSynAckError(t *testing.T) {
 		// don't send SYN ACK (let it time out)
 	}()
 
-	err := InitiateConnection(local, func(syn, ack, fin, err bool) error {
+	err := InitiateConnection(local, recvTimeout, func(syn, ack, fin, err bool) error {
 		remote <- mockControlPacket(syn, ack, fin, err)
 		return nil
 	})
@@ -127,7 +131,7 @@ func TestInitiateConnectionSendAckError(t *testing.T) {
 
 	sendInvocations := 0
 
-	err := InitiateConnection(local, func(syn, ack, fin, err bool) error {
+	err := InitiateConnection(local, recvTimeout, func(syn, ack, fin, err bool) error {
 		if sendInvocations > 0 {
 			return errMock
 		}
@@ -161,7 +165,7 @@ func TestAcceptConnectionOK(t *testing.T) {
 		local <- mockControlPacket(false, true, false, false)
 	}()
 
-	err := AcceptConnection(local, func(syn, ack, fin, err bool) error {
+	err := AcceptConnection(local, recvTimeout, func(syn, ack, fin, err bool) error {
 		remote <- mockControlPacket(syn, ack, fin, err)
 		return nil
 	})
@@ -169,7 +173,7 @@ func TestAcceptConnectionOK(t *testing.T) {
 }
 
 func TestAcceptConnectionSendSynAckError(t *testing.T) {
-	err := AcceptConnection(make(chan *packet.Packet), func(syn, ack, fin, err bool) error {
+	err := AcceptConnection(make(chan *packet.Packet), recvTimeout, func(syn, ack, fin, err bool) error {
 		return errMock
 	})
 	assert.NotNil(t, err)
@@ -191,7 +195,7 @@ func TestAcceptConnectionWaitForAckError(t *testing.T) {
 		// don't send ACK (let it time out)
 	}()
 
-	err := AcceptConnection(make(chan *packet.Packet), func(syn, ack, fin, err bool) error {
+	err := AcceptConnection(make(chan *packet.Packet), recvTimeout, func(syn, ack, fin, err bool) error {
 		remote <- mockControlPacket(syn, ack, fin, err)
 		return nil
 	})
@@ -223,7 +227,7 @@ func TestInitiateDisconnectionOK(t *testing.T) {
 		assert.False(t, p.IsERR())
 	}()
 
-	err := InitiateDisconnection(local, func(syn, ack, fin, err bool) error {
+	err := InitiateDisconnection(local, recvTimeout, func(syn, ack, fin, err bool) error {
 		remote <- mockControlPacket(syn, ack, fin, err)
 		return nil
 	})
@@ -234,7 +238,7 @@ func TestInitiateDisconnectionOK(t *testing.T) {
 }
 
 func TestInitiateDisconnectionSendFinError(t *testing.T) {
-	err := InitiateDisconnection(make(chan *packet.Packet), func(syn, ack, fin, err bool) error {
+	err := InitiateDisconnection(make(chan *packet.Packet), recvTimeout, func(syn, ack, fin, err bool) error {
 		return errMock
 	})
 	assert.NotNil(t, err)
@@ -257,7 +261,7 @@ func TestInitiateDisconnectionWaitForFinAckError(t *testing.T) {
 		// don't send FIN ACK (let it time out)
 	}()
 
-	err := InitiateDisconnection(local, func(syn, ack, fin, err bool) error {
+	err := InitiateDisconnection(local, recvTimeout, func(syn, ack, fin, err bool) error {
 		remote <- mockControlPacket(syn, ack, fin, err)
 		return nil
 	})
@@ -286,7 +290,7 @@ func TestInitiateDisconnectionSendAckError(t *testing.T) {
 
 	sendInvocations := 0
 
-	err := InitiateDisconnection(local, func(syn, ack, fin, err bool) error {
+	err := InitiateDisconnection(local, recvTimeout, func(syn, ack, fin, err bool) error {
 		if sendInvocations > 0 {
 			return errMock
 		}
@@ -320,7 +324,7 @@ func TestAcceptDisconnectionOK(t *testing.T) {
 		local <- mockControlPacket(false, true, false, false)
 	}()
 
-	err := AcceptDisconnection(local, func(syn, ack, fin, err bool) error {
+	err := AcceptDisconnection(local, recvTimeout, func(syn, ack, fin, err bool) error {
 		remote <- mockControlPacket(syn, ack, fin, err)
 		return nil
 	})
@@ -328,7 +332,7 @@ func TestAcceptDisconnectionOK(t *testing.T) {
 }
 
 func TestAcceptDisconnectionSendFinAckError(t *testing.T) {
-	err := AcceptDisconnection(make(chan *packet.Packet), func(syn, ack, fin, err bool) error {
+	err := AcceptDisconnection(make(chan *packet.Packet), recvTimeout, func(syn, ack, fin, err bool) error {
 		return errMock
 	})
 	assert.NotNil(t, err)
@@ -350,7 +354,7 @@ func TestAcceptDisconnectionWaitForAckError(t *testing.T) {
 		// don't send ACK (let it time out)
 	}()
 
-	err := AcceptDisconnection(make(chan *packet.Packet), func(syn, ack, fin, err bool) error {
+	err := AcceptDisconnection(make(chan *packet.Packet), recvTimeout, func(syn, ack, fin, err bool) error {
 		remote <- mockControlPacket(syn, ack, fin, err)
 		return nil
 	})
