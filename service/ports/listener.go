@@ -1,4 +1,4 @@
-package listener
+package ports
 
 import (
 	"net"
@@ -13,8 +13,8 @@ type Listener struct {
 	notifier net.Conn
 }
 
-// New is the Listener constructor
-func New(port uint16, c net.Conn) *Listener {
+// NewListener is the Listener constructor
+func NewListener(port uint16, c net.Conn) *Listener {
 	return &Listener{
 		Port:     port,
 		notifier: c,

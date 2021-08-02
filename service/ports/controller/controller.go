@@ -2,7 +2,7 @@ package controller
 
 import (
 	"github.com/adrianosela/rdtp/packet"
-	"github.com/adrianosela/rdtp/service/ports/listener"
+	"github.com/adrianosela/rdtp/service/ports"
 	"github.com/adrianosela/rdtp/socket"
 )
 
@@ -12,6 +12,6 @@ type Controller interface {
 	Put(sck *socket.Socket) error
 	Evict(sckID string) error
 	Deliver(p *packet.Packet) error
-	AttachListener(l *listener.Listener) error
+	AttachListener(l *ports.Listener) error
 	DetachListener(port uint16) error
 }

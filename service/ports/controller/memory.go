@@ -7,7 +7,7 @@ import (
 
 	"github.com/adrianosela/rdtp"
 	"github.com/adrianosela/rdtp/packet"
-	"github.com/adrianosela/rdtp/service/ports/listener"
+	"github.com/adrianosela/rdtp/service/ports"
 
 	"github.com/adrianosela/rdtp/socket"
 	"github.com/pkg/errors"
@@ -19,7 +19,7 @@ type MemoryController struct {
 	sync.RWMutex
 
 	// listeners is a map of port number to listener
-	listeners map[uint16]*listener.Listener
+	listeners map[uint16]*ports.Listener
 
 	// sockets is a map of sockets where each socket's
 	// unique identifier is "laddr:lport raddr:rport",
@@ -30,7 +30,7 @@ type MemoryController struct {
 // NewMemoryController returns an initialized in-memory rdtp sockets manager
 func NewMemoryController() *MemoryController {
 	return &MemoryController{
-		listeners: make(map[uint16]*listener.Listener),
+		listeners: make(map[uint16]*ports.Listener),
 		sockets:   make(map[string]*socket.Socket),
 	}
 }
@@ -68,7 +68,7 @@ func (m *MemoryController) Evict(id string) error {
 }
 
 // AttachListener attaches a listener to a port
-func (m *MemoryController) AttachListener(l *listener.Listener) error {
+func (m *MemoryController) AttachListener(l *ports.Listener) error {
 	m.RLock()
 	_, ok := m.listeners[l.Port]
 	m.RUnlock()

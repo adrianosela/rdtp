@@ -8,7 +8,7 @@ import (
 	"net"
 
 	"github.com/adrianosela/rdtp"
-	"github.com/adrianosela/rdtp/service/ports/listener"
+	"github.com/adrianosela/rdtp/service/ports"
 	"github.com/adrianosela/rdtp/socket"
 	"github.com/pkg/errors"
 )
@@ -128,7 +128,7 @@ func (s *Service) handleClientMessageAccept(c net.Conn, r rdtp.ClientMessage) {
 }
 
 func (s *Service) handleClientMessageListen(c net.Conn, r rdtp.ClientMessage) {
-	if err := s.ports.AttachListener(listener.New(r.LocalAddr.Port, c)); err != nil {
+	if err := s.ports.AttachListener(ports.NewListener(r.LocalAddr.Port, c)); err != nil {
 		log.Println(errors.Wrap(err, "failed to attach listener"))
 		sendErrorMessage(c, rdtp.ServiceErrorTypeFailedToAttachListener)
 		return
