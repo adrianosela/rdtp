@@ -9,7 +9,7 @@ import (
 
 	"github.com/adrianosela/rdtp"
 	"github.com/adrianosela/rdtp/service/ports/listener"
-	"github.com/adrianosela/rdtp/service/ports/socket"
+	"github.com/adrianosela/rdtp/socket"
 	"github.com/pkg/errors"
 )
 

@@ -2,7 +2,6 @@ package socket
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/adrianosela/rdtp/packet"
@@ -60,46 +59,48 @@ func (s *Socket) Accept() error {
 }
 
 // Finish manages the finish handshake
-func (s *Socket) Finish(closedByRemote bool) error {
-	if closedByRemote {
+func (s *Socket) Finish() error {
+	select {
+	case <-s.fin:
 		// send FIN ACK
 		if err := s.packetizer.SendControlPacket(false, true, true, false); err != nil {
-			log.Printf("FINISH (closed by remote): Send FIN ACK [FAIL]: %s", err)
+			// log.Printf("FINISH (closed by remote): Send FIN ACK [FAIL]: %s", err)
 			return errors.Wrap(err, "finish handshake failed when sending FIN ACK")
 		}
-		log.Println("FINISH (closed by remote): Send FIN ACK [OK]")
+		// log.Println("FINISH (closed by remote): Send FIN ACK [OK]")
 
 		// wait for ACK
 		if err := receiveControlPacket(s.inbound, false, true, false, false, controlPacketWaitTimeout); err != nil {
-			log.Printf("FINISH (closed by remote): Receive ACK [FAIL]: %s", err)
+			// log.Printf("FINISH (closed by remote): Receive ACK [FAIL]: %s", err)
 			return errors.Wrap(err, "finish handshake failed when waiting for ACK")
 		}
-		log.Println("FINISH (closed by remote): Receive ACK [OK]")
+		// log.Println("FINISH (closed by remote): Receive ACK [OK]")
+
+		return nil
+	default:
+		// SEND FIN
+		if err := s.packetizer.SendControlPacket(false, false, true, false); err != nil {
+			// log.Printf("FINISH (closed by local): Send FIN [FAIL]: %s", err)
+			return errors.Wrap(err, "finish handshake failed when sending FIN")
+		}
+		// log.Println("FINISH (closed by local): Send FIN [OK]")
+
+		// wait for FIN ACK
+		if err := receiveControlPacket(s.inbound, false, true, true, false, controlPacketWaitTimeout); err != nil {
+			// log.Printf("FINISH (closed by local): Receive FIN ACK [FAIL]: %s", err)
+			return errors.Wrap(err, "finish handshake failed when waiting for FIN ACK")
+		}
+		// log.Println("FINISH (closed by local): Receive FIN ACK [OK]")
+
+		// send ACK
+		if err := s.packetizer.SendControlPacket(false, true, false, false); err != nil {
+			// log.Printf("FINISH (closed by local): Send ACK [FAIL]: %s", err)
+			return errors.Wrap(err, "finish handshake failed when sending ACK")
+		}
+		// log.Println("FINISH (closed by local): Send ACK [OK]")
 
 		return nil
 	}
-	// send FIN
-	if err := s.packetizer.SendControlPacket(false, false, true, false); err != nil {
-		log.Printf("FINISH (closed by local): Send FIN [FAIL]: %s", err)
-		return errors.Wrap(err, "finish handshake failed when sending FIN")
-	}
-	log.Println("FINISH (closed by local): Send FIN [OK]")
-
-	// wait for FIN ACK
-	if err := receiveControlPacket(s.inbound, false, true, true, false, controlPacketWaitTimeout); err != nil {
-		log.Printf("FINISH (closed by local): Receive FIN ACK [FAIL]: %s", err)
-		return errors.Wrap(err, "finish handshake failed when waiting for FIN ACK")
-	}
-	log.Println("FINISH (closed by local): Receive FIN ACK [OK]")
-
-	// send ACK
-	if err := s.packetizer.SendControlPacket(false, true, false, false); err != nil {
-		log.Printf("FINISH (closed by local): Send ACK [FAIL]: %s", err)
-		return errors.Wrap(err, "finish handshake failed when sending ACK")
-	}
-	log.Println("FINISH (closed by local): Send ACK [OK]")
-
-	return nil
 }
 
 // receiveControlPacket blocks until the a packet is received (or timeout)

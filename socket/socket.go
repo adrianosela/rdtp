@@ -44,6 +44,9 @@ type Socket struct {
 
 	// used to notify socket of shutdown
 	shutdown chan bool
+
+	// used to notify socket of fin received
+	fin chan bool
 }
 
 // Config is the necessary configuration to initialize a socket
@@ -91,6 +94,7 @@ func New(c Config) (*Socket, error) {
 			toNetwork),
 		inbound:  make(chan *packet.Packet, inboundPacketChannelSize),
 		shutdown: make(chan bool, 1),
+		fin:      make(chan bool, 1),
 	}, nil
 }
 
@@ -111,12 +115,18 @@ func (s *Socket) RemoteAddr() net.Addr {
 
 // Close closes a socket
 func (s *Socket) Close() {
-	// close conn to application layer
 	s.application.Close()
 }
 
 // Deliver delivers a packet to a socket's inbound packet channel
 func (s *Socket) Deliver(p *packet.Packet) {
+	if p.IsFIN() && !p.IsACK() {
+		// log.Println("FINISH (closed by remote): Received FIN [OK]")
+		s.fin <- true
+		s.shutdown <- true
+		close(s.shutdown)
+		return
+	}
 	s.inbound <- p
 }
 
@@ -133,11 +143,12 @@ func (s *Socket) Run() {
 	for {
 		select {
 		case <-sigs:
+			defer close(s.shutdown)
 		case <-s.shutdown:
 			done <- true
 			close(done)
-			// FIXME: proper FIN handshake -- for now just sending FIN and returning
-			s.packetizer.SendControlPacket(false, false, true, false)
+			s.Finish()
+			close(s.inbound)
 			return
 		}
 	}
@@ -147,7 +158,6 @@ func (s *Socket) receive(done chan bool) {
 	for {
 		select {
 		case <-done:
-			close(s.inbound) // TODO: move to after FIN handshake
 			return
 		case p := <-s.inbound:
 			s.rxBytes += uint32(p.Length)  // stats

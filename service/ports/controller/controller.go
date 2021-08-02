@@ -3,7 +3,7 @@ package controller
 import (
 	"github.com/adrianosela/rdtp/packet"
 	"github.com/adrianosela/rdtp/service/ports/listener"
-	"github.com/adrianosela/rdtp/service/ports/socket"
+	"github.com/adrianosela/rdtp/socket"
 )
 
 // Controller represents the rdtp ports controller.

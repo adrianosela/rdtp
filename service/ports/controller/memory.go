@@ -9,7 +9,7 @@ import (
 	"github.com/adrianosela/rdtp/packet"
 	"github.com/adrianosela/rdtp/service/ports/listener"
 
-	"github.com/adrianosela/rdtp/service/ports/socket"
+	"github.com/adrianosela/rdtp/socket"
 	"github.com/pkg/errors"
 )
 
@@ -133,9 +133,6 @@ func (m *MemoryController) Deliver(p *packet.Packet) error {
 	id, err := socketIDFromPacket(p)
 	if err != nil {
 		return errors.Wrap(err, "could not build socket address from packet data")
-	}
-	if p.IsFIN() && !p.IsACK() {
-		return m.Evict(id)
 	}
 
 	m.RLock()
