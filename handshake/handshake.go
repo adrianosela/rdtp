@@ -10,6 +10,8 @@ import (
 )
 
 const (
+	debug                    = false
+	flagFmt                  = "{SYN[%t] ACK[%t] FIN[%t] ERR[%t]}"
 	controlPacketWaitTimeout = time.Second * 1
 )
 
@@ -19,24 +21,24 @@ type ctrlPacketSender func(syn, ack, fin, err bool) error
 func InitiateConnection(recv chan *packet.Packet, sendCtrl ctrlPacketSender) error {
 	// send SYN
 	if err := sendCtrl(true, false, false, false); err != nil {
-		logIfDebugOn("DIAL: Send SYN [FAIL]: %s", err)
+		conditionallyLog(debug, "DIAL: Send SYN [FAIL]: %s", err)
 		return errors.Wrap(err, "connect handshake failed when sending SYN")
 	}
-	logIfDebugOn("DIAL: Send SYN [OK]")
+	conditionallyLog(debug, "DIAL: Send SYN [OK]")
 
 	// wait for SYN ACK
 	if err := receiveControlPacket(recv, true, true, false, false, controlPacketWaitTimeout); err != nil {
-		logIfDebugOn("DIAL: Receive SYN ACK [FAIL]: %s", err)
+		conditionallyLog(debug, "DIAL: Receive SYN ACK [FAIL]: %s", err)
 		return errors.Wrap(err, "connect handshake failed when waiting for SYN ACK")
 	}
-	logIfDebugOn("DIAL: Receive SYN ACK [OK]")
+	conditionallyLog(debug, "DIAL: Receive SYN ACK [OK]")
 
 	// send ACK
 	if err := sendCtrl(false, true, false, false); err != nil {
-		logIfDebugOn("DIAL: Send ACK [FAIL]: %s", err)
+		conditionallyLog(debug, "DIAL: Send ACK [FAIL]: %s", err)
 		return errors.Wrap(err, "connect handshake failed when sending ACK")
 	}
-	logIfDebugOn("DIAL: Send ACK [OK]")
+	conditionallyLog(debug, "DIAL: Send ACK [OK]")
 
 	return nil
 }
@@ -45,17 +47,17 @@ func InitiateConnection(recv chan *packet.Packet, sendCtrl ctrlPacketSender) err
 func AcceptConnection(recv chan *packet.Packet, sendCtrl ctrlPacketSender) error {
 	// send SYN ACK
 	if err := sendCtrl(true, true, false, false); err != nil {
-		logIfDebugOn("ACCEPT: Send SYN ACK [FAIL]: %s", err)
+		conditionallyLog(debug, "ACCEPT: Send SYN ACK [FAIL]: %s", err)
 		return errors.Wrap(err, "connect handshake failed when sending SYN ACK")
 	}
-	logIfDebugOn("ACCEPT: Send SYN ACK [OK]")
+	conditionallyLog(debug, "ACCEPT: Send SYN ACK [OK]")
 
 	// wait for ACK
 	if err := receiveControlPacket(recv, false, true, false, false, controlPacketWaitTimeout); err != nil {
-		logIfDebugOn("ACCEPT: Receive ACK [FAIL]: %s", err)
+		conditionallyLog(debug, "ACCEPT: Receive ACK [FAIL]: %s", err)
 		return errors.Wrap(err, "connect handshake failed when waiting for ACK")
 	}
-	logIfDebugOn("ACCEPT: Receive ACK [OK]")
+	conditionallyLog(debug, "ACCEPT: Receive ACK [OK]")
 
 	return nil
 }
@@ -64,24 +66,24 @@ func AcceptConnection(recv chan *packet.Packet, sendCtrl ctrlPacketSender) error
 func InitiateDisconnection(recv chan *packet.Packet, sendCtrl ctrlPacketSender) error {
 	// SEND FIN
 	if err := sendCtrl(false, false, true, false); err != nil {
-		logIfDebugOn("FINISH (closed by local): Send FIN [FAIL]: %s", err)
+		conditionallyLog(debug, "FINISH (closed by local): Send FIN [FAIL]: %s", err)
 		return errors.Wrap(err, "finish handshake failed when sending FIN")
 	}
-	logIfDebugOn("FINISH (closed by local): Send FIN [OK]")
+	conditionallyLog(debug, "FINISH (closed by local): Send FIN [OK]")
 
 	// wait for FIN ACK
 	if err := receiveControlPacket(recv, false, true, true, false, controlPacketWaitTimeout); err != nil {
-		logIfDebugOn("FINISH (closed by local): Receive FIN ACK [FAIL]: %s", err)
+		conditionallyLog(debug, "FINISH (closed by local): Receive FIN ACK [FAIL]: %s", err)
 		return errors.Wrap(err, "finish handshake failed when waiting for FIN ACK")
 	}
-	logIfDebugOn("FINISH (closed by local): Receive FIN ACK [OK]")
+	conditionallyLog(debug, "FINISH (closed by local): Receive FIN ACK [OK]")
 
 	// send ACK
 	if err := sendCtrl(false, true, false, false); err != nil {
-		logIfDebugOn("FINISH (closed by local): Send ACK [FAIL]: %s", err)
+		conditionallyLog(debug, "FINISH (closed by local): Send ACK [FAIL]: %s", err)
 		return errors.Wrap(err, "finish handshake failed when sending ACK")
 	}
-	logIfDebugOn("FINISH (closed by local): Send ACK [OK]")
+	conditionallyLog(debug, "FINISH (closed by local): Send ACK [OK]")
 
 	return nil
 }
@@ -90,17 +92,17 @@ func InitiateDisconnection(recv chan *packet.Packet, sendCtrl ctrlPacketSender) 
 func AcceptDisconnection(recv chan *packet.Packet, sendCtrl ctrlPacketSender) error {
 	// send FIN ACK
 	if err := sendCtrl(false, true, true, false); err != nil {
-		logIfDebugOn("FINISH (closed by remote): Send FIN ACK [FAIL]: %s", err)
+		conditionallyLog(debug, "FINISH (closed by remote): Send FIN ACK [FAIL]: %s", err)
 		return errors.Wrap(err, "finish handshake failed when sending FIN ACK")
 	}
-	logIfDebugOn("FINISH (closed by remote): Send FIN ACK [OK]")
+	conditionallyLog(debug, "FINISH (closed by remote): Send FIN ACK [OK]")
 
 	// wait for ACK
 	if err := receiveControlPacket(recv, false, true, false, false, controlPacketWaitTimeout); err != nil {
-		logIfDebugOn("FINISH (closed by remote): Receive ACK [FAIL]: %s", err)
+		conditionallyLog(debug, "FINISH (closed by remote): Receive ACK [FAIL]: %s", err)
 		return errors.Wrap(err, "finish handshake failed when waiting for ACK")
 	}
-	logIfDebugOn("FINISH (closed by remote): Receive ACK [OK]")
+	conditionallyLog(debug, "FINISH (closed by remote): Receive ACK [OK]")
 
 	return nil
 }
@@ -111,7 +113,6 @@ func receiveControlPacket(in chan *packet.Packet, syn, ack, fin, err bool, timeo
 		select {
 		case p := <-in:
 			if syn != p.IsSYN() || ack != p.IsACK() || fin != p.IsFIN() || err != p.IsERR() {
-				flagFmt := "{SYN[%t] ACK[%t] FIN[%t] ERR[%t]}"
 				return fmt.Errorf(
 					"expected packet with flags %s but got %s",
 					fmt.Sprintf(flagFmt, syn, ack, fin, err),
@@ -124,8 +125,8 @@ func receiveControlPacket(in chan *packet.Packet, syn, ack, fin, err bool, timeo
 	}
 }
 
-func logIfDebugOn(fmtString string, indirects ...interface{}) {
-	if false { // set true for debug logs
+func conditionallyLog(cond bool, fmtString string, indirects ...interface{}) {
+	if cond {
 		log.Printf(fmtString, indirects...)
 	}
 }
