@@ -10,10 +10,7 @@ import (
 )
 
 const (
-	flagFmt                  = "{SYN[%t] ACK[%t] FIN[%t] ERR[%t]}"
 	controlPacketWaitTimeout = time.Second * 1
-
-	debug = false
 )
 
 type ctrlPacketSender func(syn, ack, fin, err bool) error
@@ -114,6 +111,7 @@ func receiveControlPacket(in chan *packet.Packet, syn, ack, fin, err bool, timeo
 		select {
 		case p := <-in:
 			if syn != p.IsSYN() || ack != p.IsACK() || fin != p.IsFIN() || err != p.IsERR() {
+				flagFmt := "{SYN[%t] ACK[%t] FIN[%t] ERR[%t]}"
 				return fmt.Errorf(
 					"expected packet with flags %s but got %s",
 					fmt.Sprintf(flagFmt, syn, ack, fin, err),
@@ -127,7 +125,7 @@ func receiveControlPacket(in chan *packet.Packet, syn, ack, fin, err bool, timeo
 }
 
 func logIfDebugOn(fmtString string, indirects ...interface{}) {
-	if debug {
+	if false { // set true for debug logs
 		log.Printf(fmtString, indirects...)
 	}
 }
