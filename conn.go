@@ -41,7 +41,7 @@ func Dial(address string) (*Conn, error) {
 
 	verifiedLocalAddr, err := waitForServiceMessageOK(svc)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not receive OK message from service")
+		return nil, errors.Wrap(err, "RDTP Dial error")
 	}
 
 	return &Conn{

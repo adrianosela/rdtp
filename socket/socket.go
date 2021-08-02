@@ -144,6 +144,7 @@ func (s *Socket) Run() {
 		select {
 		case <-sigs:
 			defer close(s.shutdown)
+			// fallsthrough
 		case <-s.shutdown:
 			done <- true
 			close(done)

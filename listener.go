@@ -88,7 +88,7 @@ func (l *Listener) Accept() (net.Conn, error) {
 		if err == io.EOF {
 			return nil, errors.New("Listener terminated by rdtp service")
 		}
-		return nil, errors.Wrap(err, "could not receive OK message from service")
+		return nil, errors.Wrap(err, "RDTP Accept error")
 	}
 
 	return &Conn{
@@ -124,7 +124,7 @@ func waitForServiceMessageOK(c net.Conn) (*Addr, error) {
 	}
 
 	if msg.Type == ServiceMessageTypeError {
-		return nil, fmt.Errorf("Error service message: %s", msg.Error)
+		return nil, errors.New(string(msg.Error))
 	}
 
 	if msg.Type != ServiceMessageTypeOK {
